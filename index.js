@@ -90,6 +90,9 @@
             isVisible: true, // 大纲是否可见
             textLength: 50,  //大纲展示的字符数
             debouncedInterval: 500  //大纲更新间隔
+        },
+        text:{
+            title:"对话大纲"
         }
     };
     function judgePlatform(){
@@ -102,6 +105,15 @@
         }
         if(window.location.hostname.includes('chatgpt.com')){
             return 'chatgpt';
+        }
+        if(window.location.hostname.includes('grok.com')){
+            return 'grok';
+        }
+        if(window.location.hostname.includes('qianwen.com')){
+            return 'tongyi';
+        }
+        if(window.location.hostname.includes('qwen.ai')){
+            return 'qwen';
         }
         return 'unknown';
     }
@@ -187,7 +199,6 @@
                 return {
                     //获取对话区域元素，返回一个不会被清除的节点作为监视根节点
                     selectChatArea:function(){
-                        // ChatGPT 的主要内容区域通常是 main 标签
                         return document.querySelector('#main') || document.querySelector('main');
                     },
                     //根据传入的监视根节点获取其对应的对话历史列表
@@ -195,7 +206,6 @@
                         if(!root || !root.querySelectorAll){
                             return null;
                         }
-                        // ChatGPT 的消息通常在具有 data-message-author-role 属性的元素中
                         const messages = root.querySelectorAll('[data-message-author-role]');
                         if(messages){
                             return messages;
@@ -232,12 +242,133 @@
                     ,
                     //将整个大纲元素插入到指定位置中
                     insertOutline:function(outlineEle){
-                        // 找到 ChatGPT 的主容器，通常是包含侧边栏的容器
                         const mainContainer = document.querySelector('#main').parentElement.parentElement;
                         if(mainContainer){
                             mainContainer.appendChild(outlineEle);
                         } else {
+                            document.body.appendChild(outlineEle);
+                        }
+                    }
+                };
+            case "grok":
+                return {
+                    //获取对话区域元素，返回一个不会被清除的节点作为监视根节点
+                    selectChatArea:function(){
+                        return document.querySelector('#last-reply-container').parentElement;
+                    },
+                    //根据传入的监视根节点获取其对应的对话历史列表
+                    getMessageList:function(root){ 
+                        if(!root || !root.querySelectorAll){
+                            return null;
+                        }
+                        let messages = root.querySelectorAll(':scope > .relative');
+                        return [...messages,...root.querySelectorAll(':scope > #last-reply-container > div > .relative')];
+                    }
+                    ,
+                    //判断是否为用户消息，传入参数为每一个消息对话框
+                    determineMessageOwner:function(messageEle){
+                        //根据对话框下面的按钮数量判断消息发送者
+                        const l=messageEle.children[2].firstChild.children.length;
+                        if(l<5){
+                            return MessageOwner.User;
+                        }
+                        return MessageOwner.Assistant;
+                    }
+                    ,
+                    //将整个大纲元素插入到指定位置中
+                    insertOutline:function(outlineEle){
+                        // 找到 Grok 的主容器
+                        const chatContainer = document.querySelector('main');
+                        if(chatContainer){
+                            chatContainer.parentElement.appendChild(outlineEle);
+                        } else {
+                            // 备选方案：找到 breakout 容器
+                            const breakoutContainer = document.querySelector('.breakout');
+                            if(breakoutContainer){
+                                breakoutContainer.parentElement.appendChild(outlineEle);
+                            } else {
+                                // 最后备选方案：插入到 body
+                                document.body.appendChild(outlineEle);
+                            }
+                        }
+                    }
+                };
+            case "tongyi":
+                return {
+                    //获取对话区域元素，返回一个不会被清除的节点作为监视根节点
+                    selectChatArea:function(){
+                        return document.querySelector('.scrollWrapper-LOelOS');
+                    },
+                    //根据传入的监视根节点获取其对应的对话历史列表
+                    getMessageList:function(root){ 
+                        if(!root || !root.querySelectorAll){
+                            return null;
+                        }
+                        // 尝试查找包含对话的元素
+                        let messages = root.querySelectorAll('div[class^="content-"]');
+                        return messages;
+                    }
+                    ,
+                    //判断是否为用户消息，传入参数为每一个消息对话框
+                    determineMessageOwner:function(messageEle){
+                        let className=messageEle.parentElement.className;
+                        // 通过类名判断
+                        if(className.includes('questionItem')){
+                            return MessageOwner.User;
+                        }
+                        className=messageEle.parentElement.parentElement.className;
+                        if(className.includes('answerItem')){
+                            return MessageOwner.Assistant;
+                        }
+                        
+                        return MessageOwner.Other;
+                    }
+                    ,
+                    //将整个大纲元素插入到指定位置中
+                    insertOutline:function(outlineEle){
+                        // 找到通义千问的主容器
+                        const tongyiContainer = document.querySelectorAll('.mainContent-GBAlug')[1]
+                                .parentElement.parentElement;
+                        if(tongyiContainer){
+                            tongyiContainer.appendChild(outlineEle);
+                        } else {
                             // 备选方案：插入到 body
+                            document.body.appendChild(outlineEle);
+                        }
+                    }
+                };
+            case "qwen":
+                return {
+                    //获取对话区域元素，返回一个不会被清除的节点作为监视根节点
+                    selectChatArea:function(){
+                        return document.querySelector('#chat-message-container')
+                    },
+                    //根据传入的监视根节点获取其对应的对话历史列表
+                    getMessageList:function(root){ 
+                        if(!root || !root.querySelectorAll){
+                            return null;
+                        }
+                        let messages = root.querySelectorAll('.response-message-content, .chat-user-message');
+                        return messages;
+                    }
+                    ,
+                    //判断是否为用户消息，传入参数为每一个消息对话框
+                    determineMessageOwner:function(messageEle){
+                        if(messageEle.className.includes('chat-user-message')){
+                            return MessageOwner.User;
+                        }
+                        
+                        return MessageOwner.Assistant;
+                    }
+                    ,
+                    //将整个大纲元素插入到指定位置中
+                    insertOutline:function(outlineEle){
+                        // 找到 Qwen 的主容器
+                        const mainContainer = document.querySelector('.desktop-layout');
+                        mainContainer.style.backgroundColor=getCurrentColors().background;
+                        if(mainContainer){
+                            mainContainer.appendChild(outlineEle);
+                        } else {
                             document.body.appendChild(outlineEle);
                         }
                     }
@@ -277,13 +408,13 @@
             #chat-outline {
                 width: ${GLOBAL_CONFIG.theme.sizes.outlineWidth};
                 background: ${colors.background};
-                border: 1px solid ${colors.border};
                 border-radius: ${GLOBAL_CONFIG.theme.sizes.borderRadius};
                 padding: 0;
                 box-shadow: 0 4px 12px ${colors.shadow};
                 font-size: ${GLOBAL_CONFIG.theme.sizes.fontSize};
                 transition: all 0.3s ease;
                 display: ${GLOBAL_CONFIG.features.isVisible ? 'block' : 'none'};
+                height: 100dvh;
             }
             
             /* 大纲头部样式 */
@@ -291,10 +422,11 @@
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                padding: 15px;
+                padding-left: 15px;
                 border-bottom: 1px solid ${colors.border};
                 background: ${colors.headerBg};
                 border-radius: ${GLOBAL_CONFIG.theme.sizes.borderRadius} ${GLOBAL_CONFIG.theme.sizes.borderRadius} 0 0;
+                height: 10%;
             }
             
             /* 大纲标题样式 */
@@ -330,7 +462,7 @@
             
             #outline-content {
                 overflow-y: auto;
-                height: calc(100% - 60px);
+                height: 90%;
             }
             
             /* 用户消息项样式 */
@@ -686,7 +818,7 @@
         
         // 添加标题
         const title = document.createElement('h3');
-        title.textContent = '对话大纲';
+        title.textContent = GLOBAL_CONFIG.text.title;
         title.className = 'chat-outline-title';
         header.appendChild(title);
         
