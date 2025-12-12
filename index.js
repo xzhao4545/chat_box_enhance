@@ -2,14 +2,13 @@
 // @name         聊天助手大纲
 // @namespace    http://tampermonkey.net/
 // @version      0.0.1
-// @description  try to take over the world!
+// @description  为多个AI聊天平台生成智能对话大纲，支持实时更新、层级结构、主题切换，提升聊天体验和内容导航效率
 // @author       xzhao
 // @match        *://chatgpt.com/*
 // @match        *://chat.deepseek.com/*
 // @match        *://grok.com/*
 // @match        *://www.tongyi.com/*
 // @match        *://chat.qwen.ai/*
-// @match        *://gemini.google.com/*
 // @match        *://*.doubao.com/*
 // @icon         https://cdn.deepseek.com/chat/icon.png
 // @license      MIT
