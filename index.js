@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         聊天助手大纲
 // @namespace    http://tampermonkey.net/
-// @version      0.0.1
+// @version      0.0.2
 // @description  为多个AI聊天平台生成智能对话大纲，支持实时更新、层级结构、主题切换，提升聊天体验和内容导航效率
 // @author       xzhao
 // @match        *://chatgpt.com/*
 // @match        *://chat.deepseek.com/*
 // @match        *://grok.com/*
-// @match        *://www.tongyi.com/*
+// @match        *://www.qianwen.com/*
 // @match        *://chat.qwen.ai/*
 // @match        *://*.doubao.com/*
 // @icon         https://cdn.deepseek.com/chat/icon.png
@@ -142,7 +142,7 @@
                         return MessageOwner.Assistant;
                     }
                     ,
-                    //将整个大纲元素插入到指定位置中
+                    //将整个大纲元素插入到指定位置中，不要做其它处理，保证出错时会直接抛出异常
                     insertOutline:function(outlineEle){
                         let b1=document.querySelectorAll('.ds-scroll-area')[0].parentElement.parentElement.parentElement;
                         b1.appendChild(outlineEle);
@@ -186,12 +186,7 @@
                         // 找到豆包的主布局容器，插入到侧边栏区域
                         const chatLayout = document.querySelector('[data-testid="scroll_view"]')
                                 .parentElement.parentElement.parentElement.parentElement.parentElement;
-                        if(chatLayout){
-                            chatLayout.appendChild(outlineEle);
-                        } else {
-                            // 备选方案：插入到body
-                            document.body.appendChild(outlineEle);
-                        }
+                        chatLayout.appendChild(outlineEle);
                     }
                 };
             case "chatgpt":
@@ -242,11 +237,7 @@
                     //将整个大纲元素插入到指定位置中
                     insertOutline:function(outlineEle){
                         const mainContainer = document.querySelector('#main').parentElement.parentElement;
-                        if(mainContainer){
-                            mainContainer.appendChild(outlineEle);
-                        } else {
-                            document.body.appendChild(outlineEle);
-                        }
+                        mainContainer.appendChild(outlineEle);
                     }
                 };
             case "grok":
@@ -278,18 +269,7 @@
                     insertOutline:function(outlineEle){
                         // 找到 Grok 的主容器
                         const chatContainer = document.querySelector('main');
-                        if(chatContainer){
-                            chatContainer.parentElement.appendChild(outlineEle);
-                        } else {
-                            // 备选方案：找到 breakout 容器
-                            const breakoutContainer = document.querySelector('.breakout');
-                            if(breakoutContainer){
-                                breakoutContainer.parentElement.appendChild(outlineEle);
-                            } else {
-                                // 最后备选方案：插入到 body
-                                document.body.appendChild(outlineEle);
-                            }
-                        }
+                        chatContainer.parentElement.appendChild(outlineEle);
                     }
                 };
             case "tongyi":
@@ -328,12 +308,7 @@
                         // 找到通义千问的主容器
                         const tongyiContainer = document.querySelectorAll('.mainContent-GBAlug')[1]
                                 .parentElement.parentElement;
-                        if(tongyiContainer){
-                            tongyiContainer.appendChild(outlineEle);
-                        } else {
-                            // 备选方案：插入到 body
-                            document.body.appendChild(outlineEle);
-                        }
+                        tongyiContainer.appendChild(outlineEle);
                     }
                 };
             case "qwen":
@@ -365,11 +340,7 @@
                         // 找到 Qwen 的主容器
                         const mainContainer = document.querySelector('.desktop-layout');
                         mainContainer.style.backgroundColor=getCurrentColors().background;
-                        if(mainContainer){
-                            mainContainer.appendChild(outlineEle);
-                        } else {
-                            document.body.appendChild(outlineEle);
-                        }
+                        mainContainer.appendChild(outlineEle);
                     }
                 };
             default: return null;
@@ -414,6 +385,18 @@
                 transition: all 0.3s ease;
                 display: ${GLOBAL_CONFIG.features.isVisible ? 'block' : 'none'};
                 height: 100dvh;
+            }
+            
+            /* 固定在右侧的大纲样式 */
+            #chat-outline.outline-fixed-right {
+                position: fixed;
+                top: 0;
+                right: 0;
+                z-index: 10000;
+                height: 100vh;
+                border-radius: ${GLOBAL_CONFIG.theme.sizes.borderRadius} 0 0 ${GLOBAL_CONFIG.theme.sizes.borderRadius};
+                border-right: none;
+                box-shadow: -4px 0 12px ${colors.shadow};
             }
             
             /* 大纲头部样式 */
@@ -757,6 +740,17 @@
         
         // 保存主题设置到localStorage
         localStorage.setItem('chat-outline-theme', GLOBAL_CONFIG.theme.currentTheme);
+    }
+
+    // 当大纲插入失败时，将其插入到body并固定在页面右侧
+    function insertOutlineToBodyFixed(outlineEle) {
+        // 添加固定定位的样式类
+        outlineEle.classList.add('outline-fixed-right');
+        
+        // 插入到body
+        document.body.appendChild(outlineEle);
+        
+        console.log('大纲已插入到body并固定在页面右侧');
     }
 
     // 切换大纲可见性
@@ -1297,13 +1291,14 @@
         return aiItem;
     }
 
-    async function getChatAreaWithRetry(parserConfig, maxRetries = 10, retryDelay = 1000) {
+    async function getEleWithRetry(getFunc, args=[], judgeRes=true, maxRetries = 10, retryDelay = 1000) {
         for(let attempt = 0; attempt < maxRetries; attempt++) {
             try {
-                const chatArea = parserConfig.selectChatArea();
-                if(chatArea) {
+                const res = getFunc(...args);
+                if(!judgeRes)   return true;
+                if(res) {
                     console.log(`成功获取到 chatArea，尝试次数: ${attempt + 1}`);
-                    return chatArea;
+                    return res;
                 }
                 
                 if(attempt < maxRetries - 1) {
@@ -1393,9 +1388,20 @@
         
         const outlineEle = initOutlineEle();
 
+        try{
+            // 插入大纲到页面
+            const r=await getEleWithRetry(parserConfig.insertOutline, [outlineEle],false,5,1000);
+            if(!r)  throw new EvalError("多次尝试插入大纲失败")
+        }
+        catch(e){
+            console.error("大纲插入内容失败，将插入到body并固定在右侧:",e)
+            // 当插入失败时，直接插入到body并固定在页面右侧
+            insertOutlineToBodyFixed(outlineEle);
+        }
+
         // 使用重试机制获取 chatArea
         console.log('开始获取 chatArea...');
-        const chatArea = await getChatAreaWithRetry(parserConfig);
+        const chatArea = await getEleWithRetry(parserConfig.selectChatArea);
         
         if(!chatArea) {
             console.error('经过多次重试后仍未找到聊天区域，脚本初始化失败');
@@ -1404,9 +1410,6 @@
         
         console.log('成功定位到 chatArea:', chatArea);
         GLOBAL_OBJ.chatArea=chatArea;
-        
-        // 插入大纲到页面
-        parserConfig.insertOutline(outlineEle);
         
         // 获取大纲内容容器
         const outlineContent = outlineEle.querySelector('#outline-content');
@@ -1467,7 +1470,7 @@
         // 定期清理缓存
         setInterval(cleanupCache, 2 * 60 * 1000); // 每2分钟清理一次
         
-        console.log('deepseek滚动条优化脚本已启动');
+        console.log('对话大纲生成脚本已启动');
     }
 
     if (document.readyState === 'loading') {
