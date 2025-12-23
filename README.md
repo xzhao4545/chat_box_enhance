@@ -29,9 +29,6 @@
 
 ## 安装使用
 
-### 前置要求
-- 安装 [Tampermonkey](https://www.tampermonkey.net/) 或其他用户脚本管理器
-
 ### 安装步骤
 1. 从 [GitHub仓库](https://github.com/xzhao4545/chat_box_enhance) 下载或复制 `index.js` 中的完整脚本代码
 2. 在 Tampermonkey 中创建新脚本
@@ -67,6 +64,11 @@
 ### v0.0.2
 - 添加大纲插入重试，当多次插入失败时，改为直接插入body
 - 修改tongyi.com网址为qianwen.com
+
+### v0.0.3
+- 优化元素缓存方法，更新大纲时不再重置元素状态
+- 更新deepseek页面监听元素路径，使无对话时仍可正常监听
+- 更新chatgpt页面插入时机，在页面渲染完成后再进行插入
 
 ## 贡献指南
 

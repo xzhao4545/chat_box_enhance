@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         聊天助手大纲
 // @namespace    http://tampermonkey.net/
-// @version      0.0.2
+// @version      0.0.3
 // @description  为多个AI聊天平台生成智能对话大纲，支持实时更新、层级结构、主题切换，提升聊天体验和内容导航效率
 // @author       xzhao
 // @match        *://chatgpt.com/*
