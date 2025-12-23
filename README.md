@@ -24,7 +24,7 @@
 | DeepSeek | chat.deepseek.com | ✅ 支持 |
 | 豆包 | *.doubao.com | ✅ 支持 |
 | Grok | grok.com | ✅ 支持 |
-| 通义千问 | tongyi.com | ✅ 支持 |
+| 通义千问 | www.qianwen.com | ✅ 支持 |
 | Qwen | chat.qwen.ai | ✅ 支持 |
 
 ## 安装使用
