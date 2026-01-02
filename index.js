@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         聊天助手大纲
 // @namespace    http://tampermonkey.net/
-// @version      0.0.3
+// @version      0.0.4
 // @description  为多个AI聊天平台生成智能对话大纲，支持实时更新、层级结构、主题切换，提升聊天体验和内容导航效率
 // @author       xzhao
 // @match        *://chatgpt.com/*
@@ -143,10 +143,10 @@
                     ,
                     //判断是否为用户消息，传入参数为每一个消息对话框
                     determineMessageOwner: function (messageEle) {
-                        if (messageEle.dataset.umId != undefined) {
-                            return MessageOwner.User;
+                        if (messageEle.style[0]) {
+                            return MessageOwner.Assistant;
                         }
-                        return MessageOwner.Assistant;
+                        return MessageOwner.User;
                     }
                     ,
                     //将整个大纲元素插入到指定位置中，不要做其它处理，保证出错时会直接抛出异常
@@ -940,7 +940,7 @@
 
         const cached = GLOBAL_OBJ.messageCache[index];
         // 简单检查内容长度是否变化（适用于正在生成的消息）
-        return cached.textLength === messageElement.textContent.length;
+        return cached.originalElement===messageElement && cached.textLength === messageElement.textContent.length;
     }
 
     // 缓存消息信息
@@ -1036,15 +1036,12 @@
         for (let i = 0; i < cd.length; i++) {
             const c = cd[i];
             const messageId = getMessageId(i, c);
-            const messageType = determineMessageOwnerFunc(c);
 
             // 检查是否可以使用缓存
             if (checkChange && messageIndex < GLOBAL_OBJ.messageCache.length) {
                 if (isMessageCached(messageIndex, c, messageId)) {
-                    if (messageType === MessageOwner.User || messageType === MessageOwner.Assistant) {
-                        fragment.append(GLOBAL_OBJ.messageCache[messageIndex].outlineElement)
-                        messageIndex++;
-                    }
+                    fragment.append(GLOBAL_OBJ.messageCache[messageIndex].outlineElement)
+                    messageIndex++;
                     continue;
                 } else {
                     //中间存在某节点缓存但被修改，去除该缓存节点及其后所有节点
@@ -1056,6 +1053,7 @@
             hasChanges = true;
             let outlineElement = null;
 
+            const messageType = determineMessageOwnerFunc(c);
             switch (messageType) {
                 case MessageOwner.User:
                     if (!GLOBAL_CONFIG.features.showUserMessages) break;
@@ -1320,7 +1318,7 @@
             // 创建防抖的刷新函数
             const debouncedRefresh = debounce(() => {
                 refreshOutlineItems(GLOBAL_OBJ.outlineContent, GLOBAL_OBJ.parserConfig.determineMessageOwner);
-            }, GLOBAL_CONFIG.features.debouncedInterval); // 300ms 防抖延迟
+            }, GLOBAL_CONFIG.features.debouncedInterval);
 
             GLOBAL_OBJ.debouncedRefresh = debouncedRefresh;
 
