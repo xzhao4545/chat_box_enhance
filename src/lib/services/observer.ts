@@ -6,7 +6,6 @@
 import { get } from 'svelte/store';
 import { debounce } from '../utils';
 import { featuresStore } from '../stores';
-import type { ParserConfig } from '../types';
 
 let currentObserver: MutationObserver | null = null;
 let debouncedRefresh: (() => void) | null = null;

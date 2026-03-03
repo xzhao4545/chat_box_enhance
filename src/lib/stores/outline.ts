@@ -64,7 +64,7 @@ export function createOutlineItem(
     return {
       id,
       index,
-      type: 'user',
+      type: MessageOwner.User,
       text,
       element: messageElement,
       isExpanded: true
@@ -78,7 +78,7 @@ export function createOutlineItem(
     return {
       id,
       index,
-      type: 'assistant',
+      type: MessageOwner.Assistant,
       text,
       element: messageElement,
       headers: headerTree,

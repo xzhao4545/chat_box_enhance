@@ -4,9 +4,10 @@
  */
 
 import { get } from 'svelte/store';
-import { MessageOwner, type OutlineItem, type ParserConfig } from '../types';
-import { featuresStore, messageCacheStore, lastMessageCountStore, outlineStore } from '../stores';
-import { createOutlineItem, generateMessageId, isMessageCached, cacheMessage, clearCache } from '../stores/messageCache';
+import { MessageOwner, type OutlineItem, type ParserConfig, type HeaderTreeNode } from '../types';
+import { featuresStore, outlineStore } from '../stores';
+import { generateMessageHash } from '../stores/messageCache';
+import { messageCacheManager } from './messageCacheManager';
 
 // 缓存的chatArea
 let cachedChatArea: Element | null = null;
@@ -36,95 +37,173 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
     return;
   }
 
-  const cd = parserConfig.getMessageList(chatArea);
-  if (cd == null) {
+  const messageListResult = parserConfig.getMessageList(chatArea);
+  if (messageListResult == null) {
     console.log('对话区域无效，大纲生成失败, chatArea:', chatArea);
     return;
   }
 
-  const currentMessageCount = cd.length;
-  const lastMessageCount = get(lastMessageCountStore);
-  const cache = get(messageCacheStore);
+  // 将消息列表转换为数组
+  const messageElements = Array.from(messageListResult);
+  const currentMessageCount = messageElements.length;
   const features = get(featuresStore);
 
-  // 如果消息数量没有变化，检查是否需要更新
-  if (currentMessageCount === lastMessageCount && currentMessageCount > 0) {
-    // 检查最后一条消息是否还在变化（可能是AI正在回复）
-    const lastMessage = cd[cd.length - 1];
-    const lastMessageId = generateMessageId(cd.length - 1, lastMessage);
+  console.log('刷新大纲, 消息数量:', currentMessageCount, '缓存数量:', messageCacheManager.length);
 
-    if (isMessageCached(cache.length - 1, lastMessage, lastMessageId)) {
-      return; // 没有变化，跳过更新
-    }
+  // 如果没有消息，清空缓存和store
+  if (currentMessageCount === 0) {
+    messageCacheManager.clearCache();
+    outlineStore.set([]);
+    return;
   }
 
-  console.log('刷新大纲, chatArea:', chatArea);
+  // 检查最后一条消息
+  const lastCheck = messageCacheManager.checkLastMessage(messageElements);
 
-  const newItems: OutlineItem[] = [];
-  let messageIndex = 0;
-
-  // 遍历对话生成大纲
-  for (let i = 0; i < cd.length; i++) {
-    const c = cd[i];
-    const messageId = generateMessageId(i, c);
-
-    // 检查是否可以使用缓存
-    if (messageIndex < cache.length) {
-      if (isMessageCached(messageIndex, c, messageId)) {
-        // 使用缓存的数据创建大纲项
-        const cached = cache[messageIndex];
-        const item = createOutlineItemFromCache(c, messageIndex, features.textLength);
-        if (item) {
-          newItems.push(item);
-        }
-        messageIndex++;
-        continue;
-      }
-    }
-
-    const messageType = parserConfig.determineMessageOwner(c);
-
-    if (messageType === MessageOwner.User && features.showUserMessages) {
-      const item = createOutlineItem(c, messageIndex, messageType, features.textLength);
-      if (item) {
-        newItems.push(item);
-        cacheMessage(c, item.id, item.element as Element);
-      }
-      messageIndex++;
-    } else if (messageType === MessageOwner.Assistant && features.showAIMessages) {
-      const item = createOutlineItem(c, messageIndex, messageType, features.textLength);
-      if (item) {
-        newItems.push(item);
-        cacheMessage(c, item.id, item.element as Element);
-      }
-      messageIndex++;
-    }
+  // 如果不需要刷新全部且最后一条也不需要更新，直接返回
+  if (!lastCheck.shouldRefreshAll && !lastCheck.lastMessageNeedsUpdate) {
+    console.log('没有变化，跳过更新');
+    return;
   }
 
-  // 更新store
-  outlineStore.set(newItems);
-  lastMessageCountStore.set(currentMessageCount);
+  // 如果只需要更新最后一条
+  if (!lastCheck.shouldRefreshAll && lastCheck.lastMessageNeedsUpdate) {
+    console.log('只更新最后一条消息');
+    const lastMessage = messageElements[lastCheck.lastIndex];
+    const lastMessageType = parserConfig.determineMessageOwner(lastMessage);
+
+    // 检查是否应该显示此消息
+    const shouldShow =
+      (lastMessageType === MessageOwner.User && features.showUserMessages) ||
+      (lastMessageType === MessageOwner.Assistant && features.showAIMessages);
+
+    if (shouldShow) {
+      // 获取当前缓存中的大纲元素（如果存在）
+      const lastCached = messageCacheManager.get(messageCacheManager.length - 1);
+      const existingOutlineElement = lastCached?.outlineElement;
+
+      // 创建新的大纲项
+      const newOutlineItem = createOutlineItemForCache(
+        lastMessage,
+        messageCacheManager.length - 1,
+        lastMessageType,
+        features.textLength
+      );
+
+      if (newOutlineItem) {
+        // 更新缓存
+        messageCacheManager.updateLastCache(
+          lastMessage,
+          messageCacheManager.length - 1,
+          newOutlineItem,
+          existingOutlineElement || null as unknown as Element
+        );
+
+        // 更新store以触发重新渲染
+        const allItems = messageCacheManager.getCache().map(c => c.outlineItem);
+        outlineStore.set(allItems);
+        console.log('已更新最后一条消息到大纲');
+      }
+    }
+    return;
+  }
+
+  // 需要刷新全部，使用智能重建缓存
+  console.log('重建全部缓存');
+  const result = messageCacheManager.smartRebuildCache(
+    messageElements,
+    parserConfig,
+    features
+  );
+
+  // 只有在有变更时才更新store
+  if (result.changes.hasChanges) {
+    outlineStore.set(result.outlineItems);
+    console.log('大纲刷新完成，共', result.outlineItems.length, '项，变更:', result.changes);
+  } else {
+    console.log('缓存完全命中，跳过store更新');
+  }
 }
 
 /**
- * 从缓存创建大纲项
+ * 为大纲缓存创建大纲项（不保存element引用到store）
+ * 注意：这里创建的OutlineItem会被保存到CachedMessage中
  */
-function createOutlineItemFromCache(
-  cachedElement: Element,
+function createOutlineItemForCache(
+  messageElement: Element,
   index: number,
+  type: MessageOwner,
   textLength: number
 ): OutlineItem | null {
-  const text = (cachedElement.textContent || '').substring(0, textLength) +
-    ((cachedElement.textContent || '').length > textLength ? '...' : '');
+  const text =
+    (messageElement.textContent || '').substring(0, textLength) +
+    ((messageElement.textContent || '').length > textLength ? '...' : '');
 
-  return {
-    id: `outline-${index}-${Date.now()}`,
-    index,
-    type: 'user', // 从缓存无法判断类型，需要重新判断
-    text,
-    element: cachedElement,
-    isExpanded: true
-  };
+  const id = `outline-${index}-${Date.now()}`;
+
+  if (type === MessageOwner.User) {
+    return {
+      id,
+      index,
+      type: MessageOwner.User,
+      text,
+      element: messageElement,
+      isExpanded: true
+    };
+  }
+
+  if (type === MessageOwner.Assistant) {
+    const headers = messageElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const headerTree =
+      headers.length > 0 ? buildHeaderTree(Array.from(headers)) : undefined;
+
+    return {
+      id,
+      index,
+      type: MessageOwner.Assistant,
+      text,
+      element: messageElement,
+      headers: headerTree,
+      isExpanded: true
+    };
+  }
+
+  return null;
+}
+
+/**
+ * 解析标题层级树
+ */
+function buildHeaderTree(headers: Element[]): HeaderTreeNode[] {
+  const tree: HeaderTreeNode[] = [];
+  const stack: HeaderTreeNode[] = [];
+
+  headers.forEach((header) => {
+    const tagName = header.tagName;
+    const level = parseInt(tagName.charAt(1)); // h1->1, h2->2, etc.
+
+    const node: HeaderTreeNode = {
+      element: header,
+      level: level,
+      text: header.textContent || '',
+      children: []
+    };
+
+    // 找到合适的父节点
+    while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      tree.push(node);
+    } else {
+      stack[stack.length - 1].children.push(node);
+    }
+
+    stack.push(node);
+  });
+
+  return tree;
 }
 
 /**
@@ -134,7 +213,7 @@ export function forceRefresh(parserConfig: ParserConfig): void {
   console.log('执行强制刷新...');
 
   // 清理所有缓存
-  clearCache();
+  messageCacheManager.clearCache();
   cachedChatArea = null;
 
   // 强制重新获取chatArea

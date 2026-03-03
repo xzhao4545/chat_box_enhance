@@ -26,9 +26,10 @@ export interface HeaderTreeNode {
  */
 export interface CachedMessage {
   messageId: string;
+  messageHash: string;
   textLength: number;
   outlineElement: Element;
-  originalElement: Element;
+  outlineItem: OutlineItem;
   timestamp: number;
 }
 
@@ -38,7 +39,7 @@ export interface CachedMessage {
 export interface OutlineItem {
   id: string;
   index: number;
-  type: 'user' | 'assistant';
+  type: MessageOwner;
   text: string;
   element: Element;
   headers?: HeaderTreeNode[];

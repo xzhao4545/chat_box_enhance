@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { OutlineItem as OutlineItemType } from '../../types';
+  import { MessageOwner, type OutlineItem as OutlineItemType } from '../../types';
   import HeaderTree from './HeaderTree.svelte';
   import { highlightElement } from '../../utils';
 
@@ -33,12 +33,12 @@
   });
 </script>
 
-{#if item.type === 'user'}
+{#if item.type === MessageOwner.User}
   <!-- 用户消息项 -->
   <div class="outline-user-item" onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
     👤 {item.index}. {item.text}
   </div>
-{:else if item.type === 'assistant'}
+{:else if item.type === MessageOwner.Assistant}
   {#if item.headers && item.headers.length > 0}
     <!-- AI消息容器（带标题） -->
     <div class="outline-ai-container">

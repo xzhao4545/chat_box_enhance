@@ -8,6 +8,8 @@ import { MessageOwner } from './message';
  * 解析器配置接口
  */
 export interface ParserConfig {
+  /** 初始化方法，每个平台仅在挂载时调用一次 */
+  init?: () => undefined;
   /** 获取对话区域元素，返回一个不会被清除的节点作为监视根节点 */
   selectChatArea: () => Element | null | undefined;
   /** 根据传入的监视根节点获取其对应的对话历史列表 */

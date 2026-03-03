@@ -16,7 +16,7 @@
   let outlineInstance: Record<string, any> | null = null;
 
   $effect(() => {
-    document.documentElement.setAttribute('data-theme', $themeStore.currentTheme);
+    document.documentElement.setAttribute('cbe-data-theme', $themeStore.currentTheme);
   });
 
   onMount(() => {
@@ -35,7 +35,7 @@
       console.log('无法获取解析配置');
       return;
     }
-
+    parserConfig.init?.();
     const timeout = parserConfig.timeout || 0;
 
     const timeoutId = setTimeout(async () => {
