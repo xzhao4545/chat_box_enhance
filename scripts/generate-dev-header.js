@@ -1,5 +1,4 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
 
 // 读取 package.json
 const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
@@ -17,15 +16,16 @@ let devHeader = originalHeader
     .replace(/\${author}/g, packageJson.author || '');
 
 // 在最后一行前添加 @require
-devHeader = devHeader.replace(
-    '// ==/UserScript==',
-    `// @require      file://${process.cwd()}/dist/index.js\n// ==/UserScript==`
-);
+// devHeader = devHeader.replace(
+//     '// ==/UserScript==',
+//     `// @require      file://${process.cwd()}/dist/index.js\n// ==/UserScript==`
+// );
 
 // 确保 dist 目录存在
 if (!fs.existsSync('dist')) {
     fs.mkdirSync('dist');
 }
+devHeader+="\n(function() {'use strict';const sc=document.createElement('script');sc.src='http://localhost:3000/index.js';sc.type='text/javascript';document.head.appendChild(sc);})();";
 
 // 写入开发版本的油猴头
 fs.writeFileSync('dist/userscript-headers.dev.js', devHeader);
