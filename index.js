@@ -746,7 +746,7 @@
             // 添加点击跳转功能（点击文本部分）
             nodeElement.onclick = (e) => {
                 e.stopPropagation();
-                node.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                node.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 highlightElement(node.element);
             };
 

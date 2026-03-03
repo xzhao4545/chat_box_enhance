@@ -1,0 +1,36 @@
+{
+  "name": "chat_box_enhance",
+  "version": "0.0.5",
+  "description": "为多个AI聊天平台生成智能对话大纲，支持实时更新、层级结构、主题切换，提升聊天体验和内容导航效率",
+  "main": "dist/index.js",
+  "repository": "https://github.com/xzhao4545/chat_box_enhance",
+  "scripts": {
+    "build": "webpack --config webpack.prod.js",
+    "watch": "webpack --watch --config webpack.dev.js",
+    "dev": "webpack --watch --config webpack.dev.js",
+    "gen-dev-header": "node scripts/generate-dev-header.js",
+    "prepublishOnly": "pnpm run build",
+    "prepack": "pnpm run build",
+    "publish:npm": "node scripts/publish-npm.js",
+    "deploy:pages": "node scripts/deploy-pages.js",
+    "version:patch": "pnpm version patch",
+    "version:minor": "pnpm version minor",
+    "version:major": "pnpm version major"
+  },
+  "keywords": [],
+  "author": "xzhao",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.13.1",
+    "@types/tampermonkey": "^5.0.4",
+    "@types/webpack": "^5.28.5",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-merge": "^5.9.0"
+  },
+  "dependencies": {
+  },
+  "packageManager": "pnpm@10.30.2"
+}
