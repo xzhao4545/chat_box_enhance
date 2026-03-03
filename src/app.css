@@ -1,0 +1,81 @@
+/**
+ * 全局CSS变量和基础样式
+ * 主题通过CSS变量实现，组件内样式引用这些变量
+ */
+
+:root {
+  /* 主题颜色 - Light模式 */
+  --outline-bg: #ffffff;
+  --outline-text: #333333;
+  --outline-border: #dddddd;
+  --outline-shadow: rgba(0, 0, 0, 0.15);
+  --outline-header-bg: #ffffff;
+  --outline-user-bg: #f0f8ff;
+  --outline-user-hover-bg: #e6f3ff;
+  --outline-user-border: #007acc;
+  --outline-ai-bg: #f8f8f8;
+  --outline-ai-hover-bg: #f0f0f0;
+  --outline-ai-border: #28a745;
+  --outline-node-hover-bg: #e9ecef;
+
+  /* 标题级别颜色 */
+  --header-h1: #dc3545;
+  --header-h2: #fd7e14;
+  --header-h3: #ffc107;
+  --header-h4: #28a745;
+  --header-h5: #17a2b8;
+  --header-h6: #6f42c1;
+
+  /* 尺寸 */
+  --outline-width: 300px;
+  --outline-radius: 8px;
+  --outline-padding: 15px;
+  --outline-font-size: 14px;
+
+  /* 高亮 */
+  --outline-highlight-color: rgba(131, 218, 255, 0.16);
+}
+
+/* Dark主题 */
+[data-theme="dark"] {
+  --outline-bg: #2d2d2d;
+  --outline-text: #e0e0e0;
+  --outline-border: #555555;
+  --outline-shadow: rgba(0, 0, 0, 0.3);
+  --outline-header-bg: #2d2d2d;
+  --outline-user-bg: #3a3a3a;
+  --outline-user-hover-bg: #4a4a4a;
+  --outline-user-border: #64b5f6;
+  --outline-ai-bg: #3a3a3a;
+  --outline-ai-hover-bg: #4a4a4a;
+  --outline-ai-border: #4caf50;
+  --outline-node-hover-bg: #4a4a4a;
+
+  /* 标题级别颜色 - Dark模式 */
+  --header-h1: #f48fb1;
+  --header-h2: #ffab91;
+  --header-h3: #fff176;
+  --header-h4: #81c784;
+  --header-h5: #4dd0e1;
+  --header-h6: #b39ddb;
+}
+
+/* 高亮动画 */
+.highlight-animation {
+  animation: highlight 0.5s ease-in-out;
+}
+
+@keyframes highlight {
+  0% { background-color: transparent; }
+  50% { background-color: var(--outline-highlight-color); }
+  100% { background-color: transparent; }
+}
+
+/* 性能优化 */
+.tree-node,
+.outline-user-item,
+.outline-ai-item,
+.outline-ai-header {
+  will-change: transform;
+  backface-visibility: hidden;
+}

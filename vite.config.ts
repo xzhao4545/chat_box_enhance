@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     monkey({
-      entry: 'src/index.ts',
+      entry: 'src/main.ts',
       userscript: {
         icon: 'https://cdn.deepseek.com/chat/icon.png',
         namespace: 'https://github.com/xzhao4545/chat_box_enhance',
