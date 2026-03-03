@@ -2,8 +2,6 @@
  * 大纲项创建
  * 负责创建用户消息和AI消息的大纲项
  */
-
-import { MessageOwner } from '../types';
 import { GLOBAL_CONFIG } from '../config';
 import { buildHeaderTree, createTreeStructure } from './tree';
 import { highlightElement } from './highlight';

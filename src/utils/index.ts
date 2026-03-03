@@ -2,9 +2,8 @@
  * 工具函数
  * 包含防抖、缓存、消息ID生成、重试等工具函数
  */
-
-import { CachedMessage, GlobalObj } from '../types';
-import { getGlobalObj } from '../state';
+import type { GlobalObj } from '../types';
+import { getGlobalObj } from '../config/global';
 
 /**
  * 全局状态对象

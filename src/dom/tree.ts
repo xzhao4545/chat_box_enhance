@@ -2,8 +2,7 @@
  * 树形结构管理
  * 负责构建标题层级树和创建可展开收起的树形DOM结构
  */
-
-import { HeaderTreeNode } from '../types';
+import type { HeaderTreeNode } from '../types';
 import { GLOBAL_CONFIG } from '../config';
 import { highlightElement } from './highlight';
 

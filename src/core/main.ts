@@ -3,14 +3,14 @@
  * 负责刷新大纲和处理初始化逻辑
  */
 
-import { MessageOwner, ParserConfig, GlobalObj } from '../types';
+import { MessageOwner, type ParserConfig, type GlobalObj } from '../types';
 import { GLOBAL_CONFIG } from '../config';
 import { debounce, getMessageId, isMessageCached, cacheMessage, clearAllCache, getEleWithRetry } from '../utils';
 import { createUserOutlineItem, createAIOutlineItem } from '../dom/outline';
 import { createShowButton, initOutlineEle, toggleOutlineVisibility } from '../dom/init';
 import { updateStyleContent, insertStyles } from '../styles';
-import { loadSettings, insertOutlineToBodyFixed, getGlobalObj, toggleAllNodes as toggleAllNodesState } from '../state';
-import { setupMutationObserver } from '../observer';
+import { loadSettings, insertOutlineToBodyFixed, getGlobalObj, toggleAllNodes as toggleAllNodesState } from '../config/global';
+import { setupMutationObserver } from './observer';
 import { judgePlatform, getParserConfig } from '../platform';
 
 /**

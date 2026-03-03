@@ -4,9 +4,9 @@
  */
 
 import { GLOBAL_CONFIG } from '../config';
-import { GlobalObj } from '../types';
+import type { GlobalObj } from '../types';
 import { updateStyleContent } from '../styles';
-import { getGlobalObj } from '../state';
+import { getGlobalObj } from '../config/global';
 
 /**
  * 全局对象引用（将在main模块中设置）
@@ -41,7 +41,7 @@ export function initOutlineEle(): HTMLDivElement {
   refreshBtn.title = '强制刷新大纲';
   refreshBtn.onclick = () => {
     // 触发强制刷新
-    if (globalObjRef?.forceRefreshOutline) {
+    if (globalObjRef.forceRefreshOutline) {
       globalObjRef.forceRefreshOutline();
     }
   };

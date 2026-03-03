@@ -2,9 +2,8 @@
  * MutationObserver管理
  * 负责监听DOM变化并触发大纲刷新
  */
-
-import { GlobalObj } from '../types';
-import { getGlobalObj } from '../state';
+import type { GlobalObj } from '../types';
+import { getGlobalObj } from '../config/global';
 
 /**
  * 全局对象引用（将在main模块中设置）

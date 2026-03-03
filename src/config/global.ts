@@ -1,48 +1,50 @@
 /**
- * 全局状态管理
+ * 全局状态对象
  * 存储运行时需要全局访问的变量和函数
  */
-
-import { GlobalObj } from "../types";
-import { GLOBAL_CONFIG } from "../config";
-
-
-const globalObj:GlobalObj={
-    // 缓存相关变量
-    messageCache: [],
-    lastMessageCount: 0,
-    MAX_CACHE_SIZE: 100, // 最大缓存条目数
-    idLength: 10,
-
-    getCachedChatArea(force_refresh = false): Element | null {
-      // 缓存选择器结果
-      if (force_refresh || !this._cachedChatArea) {
-        this._cachedChatArea = this.parserConfig?.selectChatArea() || null;
-        console.log("get chatArea:", this._cachedChatArea);
-      }
-      return this._cachedChatArea;
-    },
-
-    // 运行时对象
-    currentObserver: null,
-    currentChatArea: null,
-    outlineContent: null,
-    parserConfig: null,
-    debouncedRefresh: null,
-
-    // 内部缓存
-    _cachedChatArea: null,
-
-    // 展开/收起状态
-    allExpanded: true, // 默认展开状态
-
-    // 强制刷新函数
-    forceRefreshOutline: null,
-    toggleAllNodes: null,
-  };
+import type { GlobalObj } from '../types';
+import { THEME_CONFIG } from './theme';
+import { FEATURES_CONFIG } from './features';
 
 /**
- * 创建全局对象
+ * 全局状态对象实例
+ */
+const globalObj: GlobalObj = {
+  // 缓存相关变量
+  messageCache: [],
+  lastMessageCount: 0,
+  MAX_CACHE_SIZE: 100, // 最大缓存条目数
+  idLength: 10,
+
+  getCachedChatArea(force_refresh = false): Element | null {
+    // 缓存选择器结果
+    if (force_refresh || !this._cachedChatArea) {
+      this._cachedChatArea = this.parserConfig?.selectChatArea() || null;
+      console.log("get chatArea:", this._cachedChatArea);
+    }
+    return this._cachedChatArea;
+  },
+
+  // 运行时对象
+  currentObserver: null,
+  currentChatArea: null,
+  outlineContent: null,
+  parserConfig: null,
+  debouncedRefresh: null,
+
+  // 内部缓存
+  _cachedChatArea: null,
+
+  // 展开/收起状态
+  allExpanded: true, // 默认展开状态
+
+  // 强制刷新函数
+  forceRefreshOutline: null,
+  toggleAllNodes: null,
+};
+
+/**
+ * 获取全局对象
  */
 export function getGlobalObj(): GlobalObj {
   return globalObj;
@@ -107,12 +109,12 @@ export function toggleAllNodes(
 export function loadSettings(): void {
   const savedTheme = localStorage.getItem("chat-outline-theme");
   if (savedTheme && (savedTheme === "light" || savedTheme === "dark")) {
-    GLOBAL_CONFIG.theme.currentTheme = savedTheme;
+    THEME_CONFIG.currentTheme = savedTheme;
   }
 
   const savedVisible = localStorage.getItem("chat-outline-visible");
   if (savedVisible !== null) {
-    GLOBAL_CONFIG.features.isVisible = savedVisible === "true";
+    FEATURES_CONFIG.isVisible = savedVisible === "true";
   }
 }
 
