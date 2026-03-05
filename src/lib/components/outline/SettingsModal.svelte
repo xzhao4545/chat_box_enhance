@@ -19,7 +19,7 @@
 </script>
 
 <div class="modal-overlay" onclick={onClose} onkeydown={(e) => e.key === 'Escape' && onClose()} role="button" tabindex="0">
-  <div class="modal-content" role="dialog" aria-modal="true" onclick={(e) => e.stopPropagation()}>
+  <div class="modal-content" role="dialog" aria-modal="true" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()}>
     <div class="modal-header">
       <h3>设置</h3>
       <button class="close-btn" onclick={onClose}>✕</button>
