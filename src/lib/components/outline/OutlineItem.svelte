@@ -2,6 +2,7 @@
   import { MessageOwner, type OutlineItem as OutlineItemType } from '../../types';
   import HeaderTree from './HeaderTree.svelte';
   import { highlightElement } from '../../utils';
+  import { messageCacheManager } from '../../services/messageCacheManager';
 
   interface Props {
     item: OutlineItemType;
@@ -11,6 +12,7 @@
   let { item, allExpanded = true }: Props = $props();
 
   let isExpanded = $state(true);
+  let containerElement: HTMLDivElement | undefined = $state();
 
   function scrollToElement() {
     item.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -31,19 +33,26 @@
   $effect(() => {
     isExpanded = allExpanded;
   });
+
+  // 组件挂载后保存 DOM 引用到缓存
+  $effect(() => {
+    if (containerElement && item.id) {
+      messageCacheManager.updateOutlineElement(item.id, containerElement);
+    }
+  });
 </script>
 
 {#if item.type === MessageOwner.User}
   <!-- 用户消息项 -->
-  <div class="outline-user-item" onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
-    👤 {item.index}. {item.text}
+  <div class="outline-user-item" bind:this={containerElement} onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
+    👤 {item.index+1}. {item.text}
   </div>
 {:else if item.type === MessageOwner.Assistant}
   {#if item.headers && item.headers.length > 0}
     <!-- AI消息容器（带标题） -->
-    <div class="outline-ai-container">
+    <div class="outline-ai-container" bind:this={containerElement}>
       <div class="outline-ai-header" onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
-        <span class="header-text">🤖 {item.index}. {item.text}</span>
+        <span class="header-text">🤖 {item.index+1}. {item.text}</span>
         <button
           class="toggle-btn"
           onclick={toggleExpand}
@@ -60,7 +69,7 @@
     </div>
   {:else}
     <!-- AI消息简单项 -->
-    <div class="outline-ai-item" onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
+    <div class="outline-ai-item" bind:this={containerElement} onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
       🤖 {item.index}. {item.text}
     </div>
   {/if}
@@ -74,7 +83,7 @@
     border-left: 3px solid var(--outline-user-border);
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
     color: var(--outline-text);
     font-size: 14px;
   }
@@ -88,6 +97,7 @@
     border-left: 3px solid var(--outline-ai-border);
     border-radius: 4px;
     background: var(--outline-ai-bg);
+    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
   }
 
   .outline-ai-header {
@@ -123,7 +133,7 @@
     border-left: 3px solid var(--outline-ai-border);
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
     color: var(--outline-text);
     font-size: 14px;
   }
@@ -147,5 +157,10 @@
   .toggle-btn:hover {
     background-color: var(--outline-border);
     transform: scale(1.1);
+  }
+
+  :global(.outline-active) {
+    background: var(--outline-active-bg) !important;
+    box-shadow: 0 0 0 2px var(--outline-active-border);
   }
 </style>

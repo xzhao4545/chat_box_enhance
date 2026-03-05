@@ -35,5 +35,8 @@ export const deepseekConfig: ParserConfig = {
   getOutlineContainer: function () {
     let b1 = document.querySelectorAll('.ds-scroll-area')[0]?.parentElement?.parentElement?.parentElement;
     return b1 || null;
+  },
+  getScrollContainer: function(chatArea:Element): Element | null{
+    return chatArea.querySelector('.ds-scroll-area')
   }
 };

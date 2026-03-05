@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { logger } from '../../services/logger';
 
   interface Props {
     onClick: () => void;
@@ -29,7 +30,7 @@
         }
       }
     } catch (e) {
-      console.warn('Failed to load button position:', e);
+      logger.warn('Failed to load button position:', e);
     }
   }
 
@@ -38,7 +39,7 @@
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ y: positionY }));
     } catch (e) {
-      console.warn('Failed to save button position:', e);
+      logger.warn('Failed to save button position:', e);
     }
   }
 

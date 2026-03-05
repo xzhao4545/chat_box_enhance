@@ -5,7 +5,9 @@
 
 import type { CachedMessage, OutlineItem, ParserConfig } from '../types';
 import { MessageOwner } from '../types';
-import { generateMessageHash, createOutlineItem } from '../stores/messageCache';
+import { generateMessageHash, createOutlineItem, generateUniqueId } from '../stores/messageCache';
+import { logger } from './logger';
+
 
 /**
  * 缓存验证结果
@@ -90,7 +92,7 @@ export class MessageCacheManager {
 
     // 如果ID不一致，说明整个消息列表可能有变化，需要刷新全部
     if (messageId !== lastCached.messageId) {
-      console.log('最后一条消息ID不一致，需要刷新全部', {
+      logger.debug('最后一条消息ID不一致，需要刷新全部', {
         cachedId: lastCached.messageId,
         elementId: messageId
       });
@@ -101,7 +103,7 @@ export class MessageCacheManager {
     const currentHash = generateMessageHash(lastIndex, lastMessage);
     const hashConsistent = lastCached.messageHash === currentHash;
 
-    console.log('最后一条消息检查:', {
+    logger.debug('最后一条消息检查:', {
       id: messageId,
       hashConsistent,
       cachedHash: lastCached.messageHash,
@@ -129,7 +131,7 @@ export class MessageCacheManager {
     outlineElement: Element
   ): void {
     const messageHash = generateMessageHash(index, messageElement);
-    const messageId = messageElement.getAttribute('cbe-message-id') || Date.now().toString();
+    const messageId = messageElement.getAttribute('cbe-message-id') || generateUniqueId();
 
     // 如果没有cbe-message-id，设置它
     if (!messageElement.getAttribute('cbe-message-id')) {
@@ -147,7 +149,7 @@ export class MessageCacheManager {
 
     // 替换最后一条缓存
     this.cache[this.cache.length - 1] = newCacheItem;
-    console.log('更新最后一条缓存:', { index, messageId, messageHash });
+    logger.debug('更新最后一条缓存:', { index, messageId, messageHash });
   }
 
   /**
@@ -166,7 +168,7 @@ export class MessageCacheManager {
 
     // 检查ID是否一致
     if (messageId !== cachedMessage.messageId) {
-      console.log(`索引 ${index} 的ID不一致，需要更新`, {
+      logger.debug(`索引 ${index} 的ID不一致，需要更新`, {
         cachedId: cachedMessage.messageId,
         elementId: messageId
       });
@@ -176,7 +178,7 @@ export class MessageCacheManager {
     // ID一致，检查Hash是否一致
     const currentHash = generateMessageHash(index, messageElement);
     if (currentHash !== cachedMessage.messageHash) {
-      console.log(`索引 ${index} 的Hash不一致，需要更新`, {
+      logger.debug(`索引 ${index} 的Hash不一致，需要更新`, {
         cachedHash: cachedMessage.messageHash,
         currentHash
       });
@@ -213,7 +215,7 @@ export class MessageCacheManager {
 
     // 如果没有cbe-message-id，生成并设置它
     if (!messageId) {
-      messageId = Date.now().toString();
+      messageId = generateUniqueId();
       messageElement.setAttribute('cbe-message-id', messageId);
     }
 
@@ -250,7 +252,7 @@ export class MessageCacheManager {
     // 快速路径：如果消息数量和缓存数量相同，且最后一条没变化，可能不需要全量更新
     const lastCheck = this.checkLastMessage(messageElements);
     if (!lastCheck.shouldRefreshAll && !lastCheck.lastMessageNeedsUpdate) {
-      console.log('Smart Cache: 没有检测到任何变化');
+      logger.debug('Smart Cache: 没有检测到任何变化');
       return {
         changes: { hasChanges: false, changedIndices: [], addedCount: 0, removedCount: 0 },
         outlineItems: this.cache.map(c => c.outlineItem)
@@ -294,7 +296,7 @@ export class MessageCacheManager {
           );
           isChanged = true;
           changedIndices.push(messageIndex);
-          console.log(`Smart Cache: 索引 ${messageIndex} 内容已更新`);
+          logger.debug(`Smart Cache: 索引 ${messageIndex} 内容已更新`);
         }
       }
 
@@ -320,14 +322,14 @@ export class MessageCacheManager {
         );
         isChanged = true;
         changedIndices.push(messageIndex);
-        console.log(`Smart Cache: 索引 ${messageIndex} 新建缓存`);
+        logger.debug(`Smart Cache: 索引 ${messageIndex} 新建缓存`);
       }
 
       if (cacheItem) {
         // 确保索引和ID正确
         if (cacheItem.outlineItem.index !== messageIndex) {
           cacheItem.outlineItem.index = messageIndex;
-          cacheItem.outlineItem.id = `outline-${messageIndex}-${Date.now()}`;
+          cacheItem.outlineItem.id = generateUniqueId();
           isChanged = true;
         }
 
@@ -351,8 +353,20 @@ export class MessageCacheManager {
       removedCount
     };
 
-    console.log('Smart Cache 重建完成:', changes);
+    logger.debug('Smart Cache 重建完成:', changes);
     return { changes, outlineItems };
+  }
+
+  /**
+   * 更新大纲元素的引用
+   * @param outlineItemId 大纲项ID
+   * @param outlineElement 大纲DOM元素
+   */
+  updateOutlineElement(outlineItemId: string, outlineElement: Element): void {
+    const cachedItem = this.cache.find(c => c.outlineItem.id === outlineItemId);
+    if (cachedItem) {
+      cachedItem.outlineElement = outlineElement;
+    }
   }
 
   /**

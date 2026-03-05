@@ -33,5 +33,8 @@ export const qwenConfig: ParserConfig = {
     const mainContainer = document.querySelector('.desktop-layout');
     (mainContainer!! as HTMLElement).style.backgroundColor = getCurrentColors().background;
     return mainContainer;
-  }
+  },
+  getScrollContainer(chatArea) {
+    return chatArea.parentElement;
+  },
 };

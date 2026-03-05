@@ -5,9 +5,10 @@
 
 import { get } from 'svelte/store';
 import { MessageOwner, type OutlineItem, type ParserConfig, type HeaderTreeNode } from '../types';
-import { featuresStore, outlineStore } from '../stores';
-import { generateMessageHash } from '../stores/messageCache';
+import { featuresStore, generateUniqueId, outlineStore } from '../stores';
 import { messageCacheManager } from './messageCacheManager';
+import { scrollSyncService } from './scrollSyncService';
+import { logger } from './logger';
 
 // 缓存的chatArea
 let cachedChatArea: Element | null = null;
@@ -21,7 +22,7 @@ export function getCachedChatArea(
 ): Element | null {
   if (forceRefresh || !cachedChatArea) {
     cachedChatArea = parserConfig?.selectChatArea() || null;
-    console.log('get chatArea:', cachedChatArea);
+    logger.debug('get chatArea:', cachedChatArea);
   }
   return cachedChatArea;
 }
@@ -33,13 +34,13 @@ export function getCachedChatArea(
 export function refreshOutlineItems(parserConfig: ParserConfig): void {
   const chatArea = getCachedChatArea(parserConfig);
   if (!chatArea) {
-    console.log('无法定位到对话区域');
+    logger.warn('无法定位到对话区域');
     return;
   }
 
   const messageListResult = parserConfig.getMessageList(chatArea);
   if (messageListResult == null) {
-    console.log('对话区域无效，大纲生成失败, chatArea:', chatArea);
+    logger.warn('对话区域无效，大纲生成失败, chatArea:', chatArea);
     return;
   }
 
@@ -48,7 +49,7 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
   const currentMessageCount = messageElements.length;
   const features = get(featuresStore);
 
-  console.log('刷新大纲, 消息数量:', currentMessageCount, '缓存数量:', messageCacheManager.length);
+  logger.debug('刷新大纲, 消息数量:', currentMessageCount, '缓存数量:', messageCacheManager.length);
 
   // 如果没有消息，清空缓存和store
   if (currentMessageCount === 0) {
@@ -62,13 +63,13 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
 
   // 如果不需要刷新全部且最后一条也不需要更新，直接返回
   if (!lastCheck.shouldRefreshAll && !lastCheck.lastMessageNeedsUpdate) {
-    console.log('没有变化，跳过更新');
+    logger.debug('没有变化，跳过更新');
     return;
   }
 
   // 如果只需要更新最后一条
   if (!lastCheck.shouldRefreshAll && lastCheck.lastMessageNeedsUpdate) {
-    console.log('只更新最后一条消息');
+    logger.debug('只更新最后一条消息');
     const lastMessage = messageElements[lastCheck.lastIndex];
     const lastMessageType = parserConfig.determineMessageOwner(lastMessage);
 
@@ -102,14 +103,14 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
         // 更新store以触发重新渲染
         const allItems = messageCacheManager.getCache().map(c => c.outlineItem);
         outlineStore.set(allItems);
-        console.log('已更新最后一条消息到大纲');
+        logger.debug('已更新最后一条消息到大纲');
       }
     }
     return;
   }
 
   // 需要刷新全部，使用智能重建缓存
-  console.log('重建全部缓存');
+  logger.debug('重建全部缓存');
   const result = messageCacheManager.smartRebuildCache(
     messageElements,
     parserConfig,
@@ -119,9 +120,9 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
   // 只有在有变更时才更新store
   if (result.changes.hasChanges) {
     outlineStore.set(result.outlineItems);
-    console.log('大纲刷新完成，共', result.outlineItems.length, '项，变更:', result.changes);
+    logger.info('大纲刷新完成，共', result.outlineItems.length, '项，变更:', result.changes);
   } else {
-    console.log('缓存完全命中，跳过store更新');
+    logger.debug('缓存完全命中，跳过store更新');
   }
 }
 
@@ -139,7 +140,7 @@ function createOutlineItemForCache(
     (messageElement.textContent || '').substring(0, textLength) +
     ((messageElement.textContent || '').length > textLength ? '...' : '');
 
-  const id = `outline-${index}-${Date.now()}`;
+  const id = generateUniqueId();
 
   if (type === MessageOwner.User) {
     return {
@@ -210,7 +211,7 @@ function buildHeaderTree(headers: Element[]): HeaderTreeNode[] {
  * 强制刷新大纲
  */
 export function forceRefresh(parserConfig: ParserConfig): void {
-  console.log('执行强制刷新...');
+  logger.info('执行强制刷新...');
 
   // 清理所有缓存
   messageCacheManager.clearCache();
@@ -220,9 +221,13 @@ export function forceRefresh(parserConfig: ParserConfig): void {
   const newChatArea = getCachedChatArea(parserConfig, true);
   if (newChatArea) {
     refreshOutlineItems(parserConfig);
-    console.log('强制刷新完成');
+    
+    // 重新绑定滚动监听
+    scrollSyncService.rebind(newChatArea, parserConfig);
+    
+    logger.info('强制刷新完成');
   } else {
-    console.error('强制刷新失败：无法获取到chatArea');
+    logger.error('强制刷新失败：无法获取到chatArea');
   }
 }
 

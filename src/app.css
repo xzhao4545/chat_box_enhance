@@ -34,6 +34,10 @@
 
   /* 高亮 */
   --outline-highlight-color: rgba(131, 218, 255, 0.16);
+  
+  /* 激活状态 */
+  --outline-active-bg: rgba(0, 122, 204, 0.15);
+  --outline-active-border: #007acc;
 }
 
 /* Dark主题 */
@@ -58,6 +62,10 @@
   --header-h4: #81c784;
   --header-h5: #4dd0e1;
   --header-h6: #b39ddb;
+  
+  /* 激活状态 - Dark模式 */
+  --outline-active-bg: rgba(100, 181, 246, 0.2);
+  --outline-active-border: #64b5f6;
 }
 
 /* 高亮动画 */

@@ -17,7 +17,7 @@ export const messageCacheStore = writable<CachedMessage[]>([]);
 export const lastMessageCountStore = writable<number>(0);
 
 /**
- * 生成消息ID
+ * 生成消息Hash
  */
 export function generateMessageHash(
   index: number,
@@ -39,6 +39,13 @@ export function generateMessageHash(
   );
 }
 
+/**
+ * 生成id
+ */
+let idCounter = 0;
+export function generateUniqueId(): string {
+  return `${Date.now()}-${++idCounter}`;
+}
 /**
  * 解析标题层级树
  */
@@ -87,7 +94,7 @@ export function createOutlineItem(
     (messageElement.textContent || "").substring(0, textLength) +
     ((messageElement.textContent || "").length > textLength ? "..." : "");
   ++index;
-  const id = `outline-${index}-${Date.now()}`;
+  const id = generateUniqueId();
 
   if (type === MessageOwner.User) {
     return {

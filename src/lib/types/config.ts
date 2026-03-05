@@ -55,10 +55,11 @@ export interface FeaturesConfig {
   autoExpand: boolean;
   showUserMessages: boolean;
   showAIMessages: boolean;
-  enableAnimation: boolean;
   isVisible: boolean;
   textLength: number;
   debouncedInterval: number;
+  syncScroll: boolean;
+  logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
 /**

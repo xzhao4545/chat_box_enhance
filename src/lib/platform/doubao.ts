@@ -39,5 +39,8 @@ export const doubaoConfig: ParserConfig = {
   getOutlineContainer: function () {
     // 找到豆包的主布局容器
     return document.querySelector('main') || null;
-  }
+  },
+  getScrollContainer(chatArea) {
+    return chatArea.querySelector('[class^="scrollable"]');
+  },
 };

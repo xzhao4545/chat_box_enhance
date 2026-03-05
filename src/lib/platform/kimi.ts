@@ -34,5 +34,8 @@ export const kimiConfig: ParserConfig = {
     const mainContainer = document.querySelector('.main');
     return mainContainer;
   },
+  getScrollContainer(chatArea) {
+    return chatArea.querySelector('.chat-detail-main');
+  },
   timeout: 5000
 };

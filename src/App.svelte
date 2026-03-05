@@ -8,6 +8,8 @@
   import { refreshOutlineItems, forceRefresh } from './lib/services/outline';
   import { getEleWithRetry } from './lib/utils';
   import type { ParserConfig } from './lib/types';
+  import { scrollSyncService } from './lib/services/scrollSyncService';
+  import { logger } from './lib/services/logger';
 
   let isReady = $state(false);
   let isFixedRight = $state(false);
@@ -23,7 +25,7 @@
     // 判断平台
     const platform = judgePlatform();
     if (platform === 'unknown') {
-      console.log('不支持的平台');
+      logger.warn('不支持的平台');
       return;
     }
 
@@ -32,7 +34,7 @@
     parserConfig = get(parserConfigStore);
 
     if (!parserConfig) {
-      console.log('无法获取解析配置');
+      logger.error('无法获取解析配置');
       return;
     }
     parserConfig.init?.();
@@ -47,9 +49,10 @@
           throw new Error('无法找到大纲挂载目标，将使用固定右侧模式');
         }
 
-        console.log('成功获取大纲挂载目标:', outlineContainer);
+        logger.info('成功获取大纲挂载目标:', outlineContainer);
+        parserConfig?.afterGetContainer?.(outlineContainer);
       } catch (e) {
-        console.error('大纲挂载失败，将插入到body并固定在右侧:', e);
+        logger.error('大纲挂载失败，将插入到body并固定在右侧:', e);
         isFixedRight = true;
         // 创建body作为回退容器
         outlineContainer = document.body;
@@ -60,7 +63,7 @@
         // 清理可能存在的旧实例（HMR场景）
         const existingOutline = outlineContainer.querySelector('.chat-outline');
         if (existingOutline) {
-          console.log('发现已有大纲组件，跳过重复挂载');
+          logger.debug('发现已有大纲组件，跳过重复挂载');
         } else {
           outlineInstance = mount(OutlinePanel, {
             target: outlineContainer as HTMLElement,
@@ -73,18 +76,22 @@
       }
 
       // 获取chatArea
-      console.log('开始获取 chatArea...');
+      logger.info('开始获取 chatArea...');
       const chatArea = await getEleWithRetry(parserConfig!.selectChatArea);
 
       if (!chatArea) {
-        console.error('经过多次重试后仍未找到聊天区域，脚本初始化失败');
+        logger.error('经过多次重试后仍未找到聊天区域，脚本初始化失败');
         return;
       }
 
-      console.log('成功定位到 chatArea:', chatArea);
+      logger.info('成功定位到 chatArea:', chatArea);
+      parserConfig?.afterGetChatArea?.(chatArea);
 
       // 初始化大纲内容
       refreshOutlineItems(parserConfig!);
+
+      //设置滚动监听
+      scrollSyncService.init(chatArea, parserConfig!);
 
       // 设置 MutationObserver
       setupMutationObserver(chatArea, () => {
@@ -94,7 +101,7 @@
       });
 
       isReady = true;
-      console.log('对话大纲生成脚本已启动');
+      logger.info('对话大纲生成脚本已启动');
     }, timeout);
 
     return () => {

@@ -6,6 +6,7 @@
 import { get } from 'svelte/store';
 import { debounce } from '../utils';
 import { featuresStore } from '../stores';
+import { logger } from './logger';
 
 let currentObserver: MutationObserver | null = null;
 let debouncedRefresh: (() => void) | null = null;
@@ -22,7 +23,7 @@ export function setupMutationObserver(
   // 如果已有观察者，先断开连接
   if (currentObserver) {
     currentObserver.disconnect();
-    console.log('已断开原有的 MutationObserver');
+    logger.debug('已断开原有的 MutationObserver');
   }
 
   // 获取防抖间隔
@@ -65,7 +66,7 @@ export function setupMutationObserver(
   // 保存观察者引用
   currentObserver = observer;
 
-  console.log('已设置新的 MutationObserver 监听:', chatArea);
+  logger.info('已设置新的 MutationObserver 监听:', chatArea);
   return observer;
 }
 
@@ -76,7 +77,7 @@ export function disconnectObserver(): void {
   if (currentObserver) {
     currentObserver.disconnect();
     currentObserver = null;
-    console.log('已断开 MutationObserver');
+    logger.debug('已断开 MutationObserver');
   }
 }
 

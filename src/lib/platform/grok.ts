@@ -32,5 +32,8 @@ export const grokConfig: ParserConfig = {
     // 找到 Grok 的主容器
     const chatContainer = document.querySelector('main');
     return chatContainer?.parentElement??null;
-  }
+  },
+  getScrollContainer(chatArea) {
+    return chatArea.querySelector('.scrollbar-gutter-stable')
+  },
 };

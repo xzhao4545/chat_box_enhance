@@ -52,5 +52,8 @@ export const chatgptConfig: ParserConfig = {
     const mainContainer = document.querySelector('#main')?.parentElement?.parentElement?.parentElement;
     return mainContainer || null;
   },
+  getScrollContainer(chatArea) {
+    return document.querySelector('[data-scroll-root]');
+  },
   timeout: 5000
 };

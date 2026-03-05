@@ -2,9 +2,10 @@
  * 大纲数据状态管理
  */
 
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { OutlineItem, HeaderTreeNode } from '../types';
 import { MessageOwner } from '../types';
+import { generateUniqueId } from './messageCache';
 
 /**
  * 大纲项Store
@@ -58,7 +59,7 @@ export function createOutlineItem(
   const text = (messageElement.textContent || '').substring(0, textLength) +
     ((messageElement.textContent || '').length > textLength ? '...' : '');
 
-  const id = `outline-${index}-${Date.now()}`;
+  const id = generateUniqueId();
 
   if (type === MessageOwner.User) {
     return {

@@ -2,6 +2,8 @@
  * 重试机制
  */
 
+import { logger } from '../services/logger';
+
 /**
  * 带重试机制的获取元素函数
  * @param getFunc 获取元素的函数
@@ -24,22 +26,22 @@ export async function getEleWithRetry<T>(
       if (!judgeRes) return true as any;
 
       if (res) {
-        console.log(`调用 ${getFunc.name} 获取目标成功，尝试次数: ${attempt + 1}`);
+        logger.info(`调用 ${getFunc.name} 获取目标成功，尝试次数: ${attempt + 1}`);
         return res;
       }
 
       if (attempt < maxRetries - 1) {
-        console.log(`第 ${attempt + 1} 次调用 ${getFunc.name} 获取目标失败，${retryDelay}ms 后重试...`);
+        logger.debug(`第 ${attempt + 1} 次调用 ${getFunc.name} 获取目标失败，${retryDelay}ms 后重试...`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     } catch (error) {
-      console.error(`调用 ${getFunc.name} 获取目标时发生错误 (尝试 ${attempt + 1}):`, error);
+      logger.error(`调用 ${getFunc.name} 获取目标时发生错误 (尝试 ${attempt + 1}):`, error);
       if (attempt < maxRetries - 1) {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
   }
 
-  console.error(`经过 ${maxRetries} 次尝试后仍无法获取到目标`);
+  logger.error(`经过 ${maxRetries} 次尝试后仍无法获取到目标`);
   return null;
 }

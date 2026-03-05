@@ -5,6 +5,7 @@
   import OutlineHeader from './OutlineHeader.svelte';
   import OutlineList from './OutlineList.svelte';
   import DraggableToggleButton from './DraggableToggleButton.svelte';
+  import { scrollSyncService } from '../../services/scrollSyncService';
 
   interface Props {
     onRefresh: () => void;
@@ -16,6 +17,8 @@
   let currentTheme = $state<'light' | 'dark'>('light');
   let allExpanded = $state(true);
   let isVisible = $state(true);
+  let filterText = $state('');
+  let useRegex = $state(false);
 
   onMount(() => {
     // 订阅store变化
@@ -53,6 +56,15 @@
   function handleHide() {
     toggleVisibility();
   }
+
+  function handleSync() {
+    scrollSyncService.manualSync();
+  }
+
+  function handleFilterChange(filter: string, regex: boolean) {
+    filterText = filter;
+    useRegex = regex;
+  }
 </script>
 
 {#if isVisible}
@@ -66,10 +78,12 @@
       onToggleAll={handleToggleAll}
       onToggleTheme={handleToggleTheme}
       onHide={handleHide}
+      onSync={handleSync}
+      onFilterChange={handleFilterChange}
       {allExpanded}
       {currentTheme}
     />
-    <OutlineList />
+    <OutlineList {filterText} {useRegex} />
   </div>
 {:else}
   <DraggableToggleButton onClick={toggleVisibility} />
@@ -85,6 +99,9 @@
     font-size: var(--outline-font-size);
     transition: all 0.3s ease;
     height: 100dvh;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
   }
 
   .outline-fixed-right {
