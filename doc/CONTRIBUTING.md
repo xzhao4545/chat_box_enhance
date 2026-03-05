@@ -76,3 +76,41 @@ try { } catch (e) { }
 2. **防抖**: DOM变化时使用防抖延迟更新
 3. **惰性加载**: 仅在需要时创建对象
 4. **DOM操作**: 批量更新，减少重绘
+5. **滚动监听**: 使用节流优化滚动同步性能
+
+## 组件开发规范
+
+### Svelte 5 Runes API
+
+```typescript
+// ✅ 推荐：使用 Runes API
+let count = $state(0);
+let doubled = $derived(count * 2);
+
+$effect(() => {
+  console.log('count changed:', count);
+});
+
+// ❌ 避免：旧的响应式语法
+let count = 0;
+$: doubled = count * 2;
+```
+
+## 提交规范
+
+```bash
+# 功能
+feat: 添加xxx功能
+
+# 修复
+fix: 修复xxx问题
+
+# 文档
+docs: 更新xxx文档
+
+# 重构
+refactor: 重构xxx模块
+
+# 性能
+perf: 优化xxx性能
+```
