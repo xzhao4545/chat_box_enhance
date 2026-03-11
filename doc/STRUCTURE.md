@@ -36,9 +36,11 @@ chat_box_enhance/
 │     ├─ services/
 │     │  ├─ index.ts
 │     │  ├─ logger.ts
+│     │  ├─ messageSourceService.ts
 │     │  ├─ messageCacheManager.ts
 │     │  ├─ observer.ts
 │     │  ├─ outline.ts
+│     │  ├─ outlineRefreshService.ts
 │     │  ├─ outlineRuntimeService.ts
 │     │  └─ scrollSyncService.ts
 │     ├─ stores/
@@ -50,6 +52,7 @@ chat_box_enhance/
 │     │  └─ theme.ts
 │     ├─ types/
 │     └─ utils/
+│        └─ outlineBuilder.ts
 ├─ dist/
 ├─ package.json
 ├─ svelte.config.js
@@ -63,10 +66,13 @@ chat_box_enhance/
 |------|------|
 | `src/App.svelte` | 项目入口组件，负责平台识别与运行时 service 生命周期 |
 | `src/lib/services/outlineRuntimeService.ts` | 当前大纲功能的统一运行时入口 |
-| `src/lib/services/outline.ts` | 大纲数据刷新与强制刷新逻辑 |
+| `src/lib/services/outlineRefreshService.ts` | 大纲数据刷新、强制刷新与刷新后同步逻辑 |
+| `src/lib/services/outline.ts` | 兼容层，对外继续导出 `outlineService` |
+| `src/lib/services/messageSourceService.ts` | 消息采集与 chatArea 缓存 |
 | `src/lib/services/observer.ts` | DOM 变化监听服务 |
-| `src/lib/services/scrollSyncService.ts` | 大纲与聊天滚动同步 |
-| `src/lib/services/messageCacheManager.ts` | 增量缓存与重建策略 |
+| `src/lib/services/scrollSyncService.ts` | 大纲与聊天滚动同步、锚点构建与自动跟随 |
+| `src/lib/services/messageCacheManager.ts` | 增量缓存、索引复用与大纲 DOM 引用登记 |
+| `src/lib/utils/outlineBuilder.ts` | 摘要、标题树、搜索文本与消息 hash 构建工具 |
 | `src/lib/platform/*.ts` | 各平台 DOM 解析与适配实现 |
 
 ## 当前推荐调用关系
@@ -85,7 +91,8 @@ App.svelte
 ## 说明
 
 - 若要调整“大纲刷新、挂载、动态监听”相关流程，优先修改 `src/lib/services/outlineRuntimeService.ts`
-- 若要调整大纲数据生成策略，修改 `src/lib/services/outline.ts`
+- 若要调整大纲刷新流程，优先修改 `src/lib/services/outlineRefreshService.ts`
+- 若要调整消息采集与 chatArea 缓存，修改 `src/lib/services/messageSourceService.ts`
 - 若要调整 DOM 监听行为，修改 `src/lib/services/observer.ts`
 - 若要调整滚动同步行为，修改 `src/lib/services/scrollSyncService.ts`
-
+- 若要调整摘要、标题树或 hash 构建逻辑，修改 `src/lib/utils/outlineBuilder.ts`

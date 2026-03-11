@@ -16,7 +16,7 @@
   let containerElement: HTMLDivElement | undefined = $state();
 
   function scrollToElement() {
-    scrollSyncService.setLastHighlightElement(containerElement);
+    scrollSyncService.focusOutlineElement(containerElement);
     item.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(item.element);
   }
@@ -40,6 +40,7 @@
   $effect(() => {
     if (containerElement && item.id) {
       messageCacheManager.updateOutlineElement(item.id, containerElement);
+      scrollSyncService.scheduleRebuildScrollAnchors();
     }
   });
 </script>
@@ -85,7 +86,7 @@
     border-left: 3px solid var(--outline-user-border);
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
+    transition: background-color 0.2s;
     color: var(--outline-text);
     font-size: 14px;
   }
@@ -99,7 +100,7 @@
     border-left: 3px solid var(--outline-ai-border);
     border-radius: 4px;
     background: var(--outline-ai-bg);
-    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
+    transition: background-color 0.2s;
   }
 
   .outline-ai-header {
@@ -135,7 +136,7 @@
     border-left: 3px solid var(--outline-ai-border);
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.3s ease-in-out;
+    transition: background-color 0.2s;
     color: var(--outline-text);
     font-size: 14px;
   }
@@ -163,6 +164,7 @@
 
   :global(.outline-active) {
     background: var(--outline-active-bg) !important;
-    box-shadow: 0 0 0 2px var(--outline-active-border);
+    outline: 2px solid var(--outline-active-border);
+    outline-offset: -1px;
   }
 </style>

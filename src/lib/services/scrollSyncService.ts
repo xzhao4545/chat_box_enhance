@@ -17,6 +17,15 @@ const MAX_AUTO_RETRY_COUNT = 5;
 
 type ScrollStatusState = 'idle' | 'ready' | 'warning' | 'error' | 'syncing';
 
+interface ScrollAnchor {
+  id: string;
+  type: 'message' | 'header';
+  targetElement: Element;
+  outlineElement: Element;
+  topOffset: number;
+  depth: number;
+}
+
 export class ScrollSyncService {
   private scrollContainer: Element | null = null;
   private scrollHandler: ((event: Event) => void) | null = null;
@@ -33,13 +42,63 @@ export class ScrollSyncService {
   private isBinding = false;
   private retryGeneration = 0;
   private autoRetryCount = 0;
+  private lastSyncScrollEnabled: boolean | null = null;
+  private lastVisibleIndex = -1;
+  private intersectionObserver: IntersectionObserver | null = null;
+  private visibleMessageMetrics = new Map<string, { top: number; bottom: number }>();
+  private manualNavigationUntil = 0;
+  private headerOutlineElements = new Map<string, Element>();
+  private scrollAnchors: ScrollAnchor[] = [];
+  private anchorOffsetsDirty = true;
+  private rebuildScrollAnchorsTimer: ReturnType<typeof setTimeout> | null = null;
 
   public setLastHighlightElement(element: Element | null | undefined): void {
     this.lastHighlightElement = element;
   }
 
+  public focusOutlineElement(outlineElement: Element | null | undefined): void {
+    if (!outlineElement) {
+      return;
+    }
+
+    this.manualNavigationUntil = Date.now() + 800;
+    this.lastHighlightElement = outlineElement;
+  }
+
+  public registerHeaderOutlineElement(nodeId: string, outlineElement: Element): void {
+    this.headerOutlineElements.set(nodeId, outlineElement);
+    this.scheduleRebuildScrollAnchors();
+  }
+
+  public unregisterHeaderOutlineElement(nodeId: string): void {
+    if (this.headerOutlineElements.delete(nodeId)) {
+      this.scheduleRebuildScrollAnchors();
+    }
+  }
+
+  public scheduleRebuildScrollAnchors(): void {
+    if (this.rebuildScrollAnchorsTimer) {
+      return;
+    }
+
+    this.rebuildScrollAnchorsTimer = setTimeout(() => {
+      this.rebuildScrollAnchorsTimer = null;
+      this.rebuildScrollAnchors();
+    }, 0);
+  }
+
+  public markAnchorOffsetsDirty(): void {
+    this.anchorOffsetsDirty = true;
+  }
+
   constructor() {
     featuresStore.subscribe((features) => {
+      if (this.lastSyncScrollEnabled === features.syncScroll) {
+        return;
+      }
+
+      this.lastSyncScrollEnabled = features.syncScroll;
+
       if (features.syncScroll) {
         void this.bindScrollListenerWithRetry('sync-toggle', true);
       } else {
@@ -81,6 +140,10 @@ export class ScrollSyncService {
 
   public manualSync(): void {
     logger.info('手动同步大纲滚动');
+    this.lastHighlightElement = null;
+    this.lastVisibleIndex = -1;
+    this.visibleMessageMetrics.clear();
+    this.markAnchorOffsetsDirty();
     this.syncOutlineScroll();
   }
 
@@ -140,6 +203,8 @@ export class ScrollSyncService {
     this.parserConfig = parserConfig;
     this.scrollContainer = null;
     this.autoRetryCount = 0;
+    this.disconnectIntersectionObserver();
+    this.scrollAnchors = [];
     this.unbindScrollListener();
 
     if (!get(featuresStore).syncScroll) {
@@ -154,6 +219,7 @@ export class ScrollSyncService {
   public destroy(resetStatus = true): void {
     this.clearAutoRetryTimer();
     this.clearPostRefreshCheckTimer();
+    this.disconnectIntersectionObserver();
     this.unbindScrollListener();
 
     if (this.highlightTimer) {
@@ -167,6 +233,11 @@ export class ScrollSyncService {
     this.parserConfig = null;
     this.currentHighlightedElement = null;
     this.lastHighlightElement = null;
+    this.lastVisibleIndex = -1;
+    this.visibleMessageMetrics.clear();
+    this.headerOutlineElements.clear();
+    this.scrollAnchors = [];
+    this.manualNavigationUntil = 0;
     this.isBinding = false;
     this.retryGeneration += 1;
     this.autoRetryCount = 0;
@@ -182,8 +253,18 @@ export class ScrollSyncService {
       return;
     }
 
+    if (Date.now() < this.manualNavigationUntil) {
+      return;
+    }
+
     if (!this.scrollHandler) {
       this.handleAbnormalState('warning', '滚动监听未绑定，正在尝试自动重试');
+      return;
+    }
+
+    const activeAnchor = this.findActiveAnchor();
+    if (activeAnchor) {
+      this.scrollToOutlineAnchor(activeAnchor);
       return;
     }
 
@@ -257,6 +338,7 @@ export class ScrollSyncService {
       logger.info('绑定滚动监听成功，容器:', this.scrollContainer);
       this.autoRetryCount = 0;
       this.updateStatus('ready', '滚动监听已成功绑定');
+      this.observeVisibleMessages();
 
       if (shouldTriggerInitialSync) {
         this.triggerInitialSync();
@@ -365,6 +447,9 @@ export class ScrollSyncService {
       return;
     }
 
+    this.rebuildScrollAnchors();
+    this.observeVisibleMessages();
+
     if (this.needsRebind()) {
       this.updateStatus('syncing', '大纲已刷新，正在校正滚动监听绑定');
       await this.bindScrollListenerWithRetry('post-refresh', true, false);
@@ -404,6 +489,136 @@ export class ScrollSyncService {
     }, 0);
   }
 
+  public rebuildScrollAnchors(): void {
+    if (!this.scrollContainer) {
+      this.scrollAnchors = [];
+      this.anchorOffsetsDirty = true;
+      return;
+    }
+
+    const nextAnchors: ScrollAnchor[] = [];
+    for (const cachedItem of messageCacheManager.getCache()) {
+      if (cachedItem.outlineElement) {
+        nextAnchors.push({
+          id: cachedItem.outlineItem.id,
+          type: 'message',
+          targetElement: cachedItem.outlineItem.element,
+          outlineElement: cachedItem.outlineElement,
+          topOffset: 0,
+          depth: 0,
+        });
+      }
+
+      if (cachedItem.outlineItem.headers) {
+        this.appendHeaderAnchors(cachedItem.outlineItem.headers, nextAnchors);
+      }
+    }
+
+    this.scrollAnchors = nextAnchors;
+    this.anchorOffsetsDirty = true;
+    this.refreshAnchorOffsets();
+  }
+
+  public refreshAnchorOffsets(): void {
+    if (!this.scrollContainer || this.scrollAnchors.length === 0 || !this.anchorOffsetsDirty) {
+      return;
+    }
+
+    const containerRect = this.scrollContainer.getBoundingClientRect();
+    const scrollTop = this.getScrollTop();
+
+    for (const anchor of this.scrollAnchors) {
+      const rect = anchor.targetElement.getBoundingClientRect();
+      anchor.topOffset = rect.top - containerRect.top + scrollTop;
+    }
+
+    this.scrollAnchors.sort((left, right) => {
+      if (left.topOffset !== right.topOffset) {
+        return left.topOffset - right.topOffset;
+      }
+
+      if (left.depth !== right.depth) {
+        return left.depth - right.depth;
+      }
+
+      return left.type === right.type ? 0 : left.type === 'message' ? -1 : 1;
+    });
+
+    this.anchorOffsetsDirty = false;
+  }
+
+  private appendHeaderAnchors(headers: NonNullable<ReturnType<typeof messageCacheManager.getCache>[number]['outlineItem']['headers']>, anchors: ScrollAnchor[]): void {
+    for (const header of headers) {
+      const outlineElement = this.headerOutlineElements.get(header.id);
+      if (outlineElement) {
+        anchors.push({
+          id: header.id,
+          type: 'header',
+          targetElement: header.element,
+          outlineElement,
+          topOffset: 0,
+          depth: header.level,
+        });
+      }
+
+      if (header.children.length > 0) {
+        this.appendHeaderAnchors(header.children, anchors);
+      }
+    }
+  }
+
+  private observeVisibleMessages(): void {
+    if (!this.scrollContainer || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    this.disconnectIntersectionObserver();
+    this.visibleMessageMetrics.clear();
+
+    const cache = messageCacheManager.getCache();
+    if (cache.length === 0) {
+      return;
+    }
+
+    this.intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const messageId = (entry.target as Element).getAttribute('cbe-message-id');
+          if (!messageId) {
+            continue;
+          }
+
+          if (!entry.isIntersecting) {
+            this.visibleMessageMetrics.delete(messageId);
+            continue;
+          }
+
+          this.visibleMessageMetrics.set(messageId, {
+            top: entry.boundingClientRect.top,
+            bottom: entry.boundingClientRect.bottom,
+          });
+        }
+      },
+      {
+        root: this.scrollContainer,
+        threshold: [0, 0.1, 0.5],
+        rootMargin: '0px 0px -60% 0px'
+      }
+    );
+
+    for (const item of cache) {
+      this.intersectionObserver.observe(item.outlineItem.element);
+    }
+  }
+
+  private disconnectIntersectionObserver(): void {
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
+      this.intersectionObserver = null;
+    }
+    this.visibleMessageMetrics.clear();
+  }
+
   private unbindScrollListener(): void {
     if (this.scrollHandler && this.scrollContainer) {
       this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
@@ -415,41 +630,140 @@ export class ScrollSyncService {
       this.debounceTimer = null;
     }
 
+    if (this.rebuildScrollAnchorsTimer) {
+      clearTimeout(this.rebuildScrollAnchorsTimer);
+      this.rebuildScrollAnchorsTimer = null;
+    }
+
     this.scrollHandler = null;
   }
 
   private findVisibleMessageIndex(): number {
+    const observedIndex = this.findVisibleMessageIndexFromObserver();
+    if (observedIndex !== -1) {
+      this.lastVisibleIndex = observedIndex;
+      return observedIndex;
+    }
+
     if (!this.scrollContainer) {
       return -1;
     }
 
-    const containerTop = this.scrollContainer.getBoundingClientRect().top+10;
-    const messageElements = this.scrollContainer.querySelectorAll('[cbe-message-id]');
-
-    let visibleIndex = -1;
-
-    for (let i = 0; i < messageElements.length; i++) {
-      const rect = messageElements[i].getBoundingClientRect();
-
-      if (rect.top >= containerTop || rect.bottom > containerTop) {
-        const messageId = messageElements[i].getAttribute('cbe-message-id');
-        visibleIndex = this.findCacheIndexByMessageId(messageId);
-        break;
-      }
-    }
-
-    return visibleIndex;
-  }
-
-  private findCacheIndexByMessageId(messageId: string | null): number {
-    if (!messageId) {
+    const containerTop = this.scrollContainer.getBoundingClientRect().top + 10;
+    const cache = messageCacheManager.getCache();
+    if (cache.length === 0) {
+      this.lastVisibleIndex = -1;
       return -1;
     }
 
-    const cache = messageCacheManager.getCache();
-    for (let i = 0; i < cache.length; i++) {
-      if (cache[i].messageId === messageId) {
-        return i;
+    const nearIndex = this.findVisibleMessageIndexNear(cache, containerTop);
+    if (nearIndex !== -1) {
+      this.lastVisibleIndex = nearIndex;
+      return nearIndex;
+    }
+
+    const fallbackIndex = this.findVisibleMessageIndexFull(cache, containerTop);
+    this.lastVisibleIndex = fallbackIndex;
+    return fallbackIndex;
+  }
+
+  private findActiveAnchor(): ScrollAnchor | null {
+    if (!this.scrollContainer || this.scrollAnchors.length === 0) {
+      return null;
+    }
+
+    this.refreshAnchorOffsets();
+
+    const currentTop = this.getScrollTop() + Math.max(24, this.getContainerClientHeight() * 0.18);
+    let left = 0;
+    let right = this.scrollAnchors.length - 1;
+    let answer = -1;
+
+    while (left <= right) {
+      const middle = Math.floor((left + right) / 2);
+      if (this.scrollAnchors[middle].topOffset <= currentTop) {
+        answer = middle;
+        left = middle + 1;
+      } else {
+        right = middle - 1;
+      }
+    }
+
+    if (answer === -1) {
+      return this.scrollAnchors[0] || null;
+    }
+
+    return this.refineActiveAnchor(answer, currentTop);
+  }
+
+  private refineActiveAnchor(index: number, currentTop: number): ScrollAnchor | null {
+    let bestAnchor = this.scrollAnchors[index] || null;
+    if (!bestAnchor) {
+      return null;
+    }
+
+    const tolerance = 36;
+    for (let current = index + 1; current < this.scrollAnchors.length; current++) {
+      const candidate = this.scrollAnchors[current];
+      if (candidate.topOffset > currentTop + tolerance) {
+        break;
+      }
+
+      if (candidate.type === 'header' && candidate.depth >= bestAnchor.depth) {
+        bestAnchor = candidate;
+      }
+    }
+
+    return bestAnchor;
+  }
+
+  private findVisibleMessageIndexFromObserver(): number {
+    if (!this.scrollContainer || this.visibleMessageMetrics.size === 0) {
+      return -1;
+    }
+
+    const rootTop = this.scrollContainer.getBoundingClientRect().top + 10;
+    let targetMessageId: string | null = null;
+    let targetTop = Number.POSITIVE_INFINITY;
+
+    for (const [messageId, metrics] of this.visibleMessageMetrics.entries()) {
+      if (metrics.bottom <= rootTop) {
+        continue;
+      }
+
+      if (metrics.top < targetTop) {
+        targetTop = metrics.top;
+        targetMessageId = messageId;
+      }
+    }
+
+    return messageCacheManager.getCacheIndexByMessageId(targetMessageId);
+  }
+
+  private findVisibleMessageIndexNear(cache: ReturnType<typeof messageCacheManager.getCache>, containerTop: number): number {
+    if (this.lastVisibleIndex < 0 || this.lastVisibleIndex >= cache.length) {
+      return -1;
+    }
+
+    const maxOffset = 5;
+    const start = Math.max(0, this.lastVisibleIndex - maxOffset);
+    const end = Math.min(cache.length - 1, this.lastVisibleIndex + maxOffset);
+
+    for (let index = start; index <= end; index++) {
+      const rect = cache[index].outlineItem.element.getBoundingClientRect();
+      if (rect.top >= containerTop || rect.bottom > containerTop) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  private findVisibleMessageIndexFull(cache: ReturnType<typeof messageCacheManager.getCache>, containerTop: number): number {
+    for (let index = 0; index < cache.length; index++) {
+      const rect = cache[index].outlineItem.element.getBoundingClientRect();
+      if (rect.top >= containerTop || rect.bottom > containerTop) {
+        return index;
       }
     }
 
@@ -459,14 +773,44 @@ export class ScrollSyncService {
   private scrollToOutlineItem(index: number): void {
     const outlineElement = messageCacheManager.getOutlineElementByIndex(index);
 
-    if (!outlineElement || !this.outlineContainer || this.lastHighlightElement === outlineElement) {
+    if (!outlineElement || !this.outlineContainer) {
       return;
     }
 
-    this.lastHighlightElement = outlineElement;
+    if (this.lastHighlightElement === outlineElement) {
+      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到第 ${index + 1} 条消息`);
+      return;
+    }
+
     logger.debug('scroll to ', outlineElement);
     this.isSyncing = true;
     this.updateStatus('syncing', `滚动监听已触发，正在同步第 ${index + 1} 条消息`);
+    this.applyOutlineFocus(outlineElement);
+
+    setTimeout(() => {
+      this.isSyncing = false;
+      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到第 ${index + 1} 条消息`);
+    }, 300);
+  }
+
+  private scrollToOutlineAnchor(anchor: ScrollAnchor): void {
+    if (this.lastHighlightElement === anchor.outlineElement) {
+      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到${anchor.type === 'header' ? '标题' : '消息'}锚点`);
+      return;
+    }
+
+    this.isSyncing = true;
+    this.updateStatus('syncing', `滚动监听已触发，正在同步到${anchor.type === 'header' ? '标题' : '消息'}锚点`);
+    this.applyOutlineFocus(anchor.outlineElement);
+
+    setTimeout(() => {
+      this.isSyncing = false;
+      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到${anchor.type === 'header' ? '标题' : '消息'}锚点`);
+    }, 300);
+  }
+
+  private applyOutlineFocus(outlineElement: Element): void {
+    this.lastHighlightElement = outlineElement;
 
     if (this.highlightTimer) {
       clearTimeout(this.highlightTimer);
@@ -487,11 +831,14 @@ export class ScrollSyncService {
     }, 1000);
 
     outlineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
-    setTimeout(() => {
-      this.isSyncing = false;
-      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到第 ${index + 1} 条消息`);
-    }, 300);
+  private getScrollTop(): number {
+    return (this.scrollContainer as HTMLElement | null)?.scrollTop || 0;
+  }
+
+  private getContainerClientHeight(): number {
+    return (this.scrollContainer as HTMLElement | null)?.clientHeight || 0;
   }
 
   private updateStatus(state: ScrollStatusState, message: string): void {

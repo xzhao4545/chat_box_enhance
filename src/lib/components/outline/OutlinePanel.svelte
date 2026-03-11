@@ -101,7 +101,7 @@
     padding: 0;
     box-shadow: 0 4px 12px var(--outline-shadow);
     font-size: var(--outline-font-size);
-    transition: all 0.3s ease;
+    transition: background-color 0.3s ease;
     height: 100dvh;
     z-index: 9999;
     display: flex;

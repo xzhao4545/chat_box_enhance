@@ -20,14 +20,16 @@
   function filterItems(items: OutlineItemType[], filter: string, regex: boolean): OutlineItemType[] {
     if (!filter) return items;
     if (regex) {
-      const reg= new RegExp(filter, 'i');
-      return items.filter((item)=>{
-        return reg.test(item.element.textContent);
-      })
+      try {
+        const reg = new RegExp(filter, 'i');
+        return items.filter((item) => reg.test(item.searchText));
+      } catch {
+        return items;
+      }
     }
     
     return items.filter(item => {
-      return item.element.textContent.toLowerCase().includes(filter.toLocaleLowerCase());
+      return item.searchText.toLocaleLowerCase().includes(filter.toLocaleLowerCase());
     });
   }
   let showItems = $derived.by<OutlineItemType[]>(()=>{

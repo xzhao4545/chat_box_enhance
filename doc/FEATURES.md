@@ -4,11 +4,12 @@
 
 | 功能 | 说明 | 实现位置 |
 |------|------|----------|
-| 智能大纲生成 | 解析对话内容并生成树形大纲 | `src/lib/services/outline.ts` |
+| 智能大纲生成 | 解析对话内容并生成树形大纲 | `src/lib/services/outlineRefreshService.ts` |
 | 大纲运行时管理 | 统一管理大纲挂载、刷新、监听和销毁 | `src/lib/services/outlineRuntimeService.ts` |
+| 消息采集 | 统一采集消息列表并补齐稳定消息 ID | `src/lib/services/messageSourceService.ts` |
 | DOM 动态监听 | 监听聊天内容变化并触发大纲刷新 | `src/lib/services/observer.ts` |
-| 消息缓存 | 缓存已解析消息，减少重复构建 | `src/lib/services/messageCacheManager.ts` |
-| 滚动同步 | 聊天区域滚动时同步定位大纲项 | `src/lib/services/scrollSyncService.ts` |
+| 消息缓存 | 缓存已解析消息，减少重复构建并复用大纲 DOM 引用 | `src/lib/services/messageCacheManager.ts` |
+| 滚动同步 | 聊天区域滚动时同步定位大纲项，支持标题子节点跟随 | `src/lib/services/scrollSyncService.ts` |
 | 大纲搜索 | 支持普通文本与正则搜索 | `src/lib/components/outline/OutlineHeader.svelte` |
 | 多平台支持 | 适配多个 AI 对话页面 | `src/lib/platform/*.ts` |
 | 主题切换 | 明亮/暗色主题切换 | `src/lib/stores/theme.ts` |
@@ -32,10 +33,10 @@
 | 按钮 | 功能 | 实现位置 |
 |------|------|----------|
 | 刷新 | 强制刷新大纲 | `src/lib/components/outline/OutlineHeader.svelte` |
-| 同步 | 手动同步大纲位置 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 同步 | 手动同步大纲位置，并重新计算当前激活锚点 | `src/lib/components/outline/OutlineHeader.svelte` |
 | 展开/收起 | 切换全部节点展开状态 | `src/lib/components/outline/OutlineHeader.svelte` |
 | 主题 | 切换明暗主题 | `src/lib/components/outline/OutlineHeader.svelte` |
-| 搜索 | 过滤大纲内容 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 搜索 | 过滤大纲内容，支持正则与输入防抖 | `src/lib/components/outline/OutlineHeader.svelte` |
 | 设置 | 打开设置面板 | `src/lib/components/outline/SettingsModal.svelte` |
 | 隐藏 | 隐藏大纲面板 | `src/lib/components/outline/OutlinePanel.svelte` |
 
