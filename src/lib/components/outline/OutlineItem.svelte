@@ -3,6 +3,7 @@
   import HeaderTree from './HeaderTree.svelte';
   import { highlightElement } from '../../utils';
   import { messageCacheManager } from '../../services/messageCacheManager';
+  import { scrollSyncService } from '../../services/scrollSyncService';
 
   interface Props {
     item: OutlineItemType;
@@ -15,6 +16,7 @@
   let containerElement: HTMLDivElement | undefined = $state();
 
   function scrollToElement() {
+    scrollSyncService.setLastHighlightElement(item.element);
     item.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(item.element);
   }

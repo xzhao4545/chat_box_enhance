@@ -16,7 +16,7 @@ let debouncedRefresh: (() => void) | null = null;
  * @param chatArea 要监听的聊天区域元素
  * @param onRefresh 刷新回调函数
  */
-export function setupMutationObserver(
+function setupMutationObserver(
   chatArea: Element,
   onRefresh: () => void
 ): MutationObserver {
@@ -73,7 +73,7 @@ export function setupMutationObserver(
 /**
  * 断开当前观察者
  */
-export function disconnectObserver(): void {
+function disconnectObserver(): void {
   if (currentObserver) {
     currentObserver.disconnect();
     currentObserver = null;

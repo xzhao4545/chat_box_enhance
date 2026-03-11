@@ -24,6 +24,10 @@ export class ScrollSyncService {
   private highlightTimer: ReturnType<typeof setTimeout> | null = null;
   private lastHighlightElement: Element | null = null;
 
+  public setLastHighlightElement(element:Element|null){
+    this.lastHighlightElement=element;
+  }
+
   constructor() {
     // 监听 syncScroll 变化
     featuresStore.subscribe((features) => {
@@ -134,7 +138,8 @@ export class ScrollSyncService {
   private findVisibleMessageIndex(): number {
     if (!this.scrollContainer) return -1;
 
-    const containerTop = this.scrollContainer.getBoundingClientRect().top;
+    const containerBc=this.scrollContainer.getBoundingClientRect();
+    const containerTop = containerBc.top+containerBc.height*0.1;
     const messageElements =
       this.scrollContainer.querySelectorAll("[cbe-message-id]");
 

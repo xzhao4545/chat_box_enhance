@@ -16,7 +16,7 @@ let cachedChatArea: Element | null = null;
 /**
  * 获取缓存的聊天区域
  */
-export function getCachedChatArea(
+function getCachedChatArea(
   parserConfig: ParserConfig | null,
   forceRefresh = false
 ): Element | null {
@@ -31,7 +31,7 @@ export function getCachedChatArea(
  * 刷新大纲项
  * @param parserConfig 解析器配置
  */
-export function refreshOutlineItems(parserConfig: ParserConfig): void {
+function refreshOutlineItems(parserConfig: ParserConfig): void {
   const chatArea = getCachedChatArea(parserConfig);
   if (!chatArea) {
     logger.warn('无法定位到对话区域');
@@ -210,7 +210,7 @@ function buildHeaderTree(headers: Element[]): HeaderTreeNode[] {
 /**
  * 强制刷新大纲
  */
-export function forceRefresh(parserConfig: ParserConfig): void {
+function forceRefresh(parserConfig: ParserConfig): void {
   logger.info('执行强制刷新...');
 
   // 清理所有缓存

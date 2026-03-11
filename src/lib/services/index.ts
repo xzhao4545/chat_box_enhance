@@ -3,4 +3,5 @@
  */
 
 export { observerService } from './observer';
-export { outlineService, refreshOutlineItems } from './outline';
+export { outlineService } from './outline';
+export { outlineRuntimeService } from './outlineRuntimeService';

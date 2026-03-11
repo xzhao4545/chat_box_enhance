@@ -9,8 +9,9 @@ export default defineConfig({
     monkey({
       entry: 'src/main.ts',
       userscript: {
+        name: "聊天助手大纲",
         icon: 'https://cdn.deepseek.com/chat/icon.png',
-        namespace: 'https://github.com/xzhao4545/chat_box_enhance',
+        namespace: 'http://tampermonkey.net/',
         match: ['*://chatgpt.com/*','*://chat.deepseek.com/*','*://grok.com/*',
           '*://www.qianwen.com/*','*://chat.qwen.ai/*','*://*.doubao.com/*','*://www.kimi.com/*'
         ],
