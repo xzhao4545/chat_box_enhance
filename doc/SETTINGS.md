@@ -17,7 +17,7 @@
 
 ## 存储方式
 
-- 使用 `GM_setValue` / `GM_getValue` 全局存储
+- 使用 `src\lib\stores\features.ts:featuresStore` 全局存储配置
 - 存储键：`chat-outline-features`
 - 跨域名共享配置
 

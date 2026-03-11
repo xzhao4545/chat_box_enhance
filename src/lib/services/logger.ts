@@ -25,6 +25,10 @@ function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS[level] >= LOG_LEVELS[currentLevel];
 }
 
+function formatTaggedArgs(tag: string, args: any[]): any[] {
+  return [`[${tag}]`, ...args];
+}
+
 export const logger = {
   debug: (...args: any[]) => {
     if (shouldLog('debug')) console.log('[DEBUG]', ...args);
@@ -39,3 +43,20 @@ export const logger = {
     if (shouldLog('error')) console.error('[ERROR]', ...args);
   }
 };
+
+export function createTaggedLogger(tag: string) {
+  return {
+    debug: (...args: any[]) => {
+      logger.debug(...formatTaggedArgs(tag, args));
+    },
+    info: (...args: any[]) => {
+      logger.info(...formatTaggedArgs(tag, args));
+    },
+    warn: (...args: any[]) => {
+      logger.warn(...formatTaggedArgs(tag, args));
+    },
+    error: (...args: any[]) => {
+      logger.error(...formatTaggedArgs(tag, args));
+    }
+  };
+}

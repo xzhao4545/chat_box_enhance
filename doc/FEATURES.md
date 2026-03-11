@@ -17,15 +17,15 @@
 
 ## 平台支持
 
-| 平台 | 域名 |
-|------|------|
-| ChatGPT | `chatgpt.com` |
-| DeepSeek | `chat.deepseek.com` |
-| 豆包 | `*.doubao.com` |
-| Grok | `grok.com` |
-| 通义千问 | `www.qianwen.com` |
-| Qwen | `chat.qwen.ai` |
-| Kimi | `www.kimi.com` |
+| 平台 | 域名 | 大纲跟随 |
+|------|------|----------|
+| ChatGPT | `chatgpt.com` | ✅支持 |
+| DeepSeek | `chat.deepseek.com` | ✅支持 |
+| 豆包 | `*.doubao.com` | ✅支持 |
+| Grok | `grok.com` | ✅支持 |
+| 通义千问 | `www.qianwen.com` | ❌不支持 |
+| Qwen | `chat.qwen.ai` | ✅支持 |
+| Kimi | `www.kimi.com` | ✅支持 |
 
 ## 面板控制项
 
@@ -51,10 +51,3 @@
 | `debouncedInterval` | number | `500` | DOM 更新防抖时间（ms） |
 | `syncScroll` | boolean | `true` | 启用滚动同步 |
 | `logLevel` | string | `'info'` | 日志级别 |
-
-## 本次架构调整
-
-- 已新增 `outlineRuntimeService` 作为统一运行时入口
-- `App.svelte` 不再直接处理大纲挂载、Observer 注册和刷新逻辑
-- `outline.ts` 与 `observer.ts` 对外优先以 `outlineService`、`observerService` 形式使用
-
