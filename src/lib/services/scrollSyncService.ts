@@ -49,6 +49,8 @@ export class ScrollSyncService {
   private manualNavigationUntil = 0;
   private headerOutlineElements = new Map<string, Element>();
   private scrollAnchors: ScrollAnchor[] = [];
+  private anchorOffsetsDirty = true;
+  private rebuildScrollAnchorsTimer: ReturnType<typeof setTimeout> | null = null;
 
   public setLastHighlightElement(element: Element | null | undefined): void {
     this.lastHighlightElement = element;
@@ -65,13 +67,28 @@ export class ScrollSyncService {
 
   public registerHeaderOutlineElement(nodeId: string, outlineElement: Element): void {
     this.headerOutlineElements.set(nodeId, outlineElement);
-    this.rebuildScrollAnchors();
+    this.scheduleRebuildScrollAnchors();
   }
 
   public unregisterHeaderOutlineElement(nodeId: string): void {
     if (this.headerOutlineElements.delete(nodeId)) {
-      this.rebuildScrollAnchors();
+      this.scheduleRebuildScrollAnchors();
     }
+  }
+
+  public scheduleRebuildScrollAnchors(): void {
+    if (this.rebuildScrollAnchorsTimer) {
+      return;
+    }
+
+    this.rebuildScrollAnchorsTimer = setTimeout(() => {
+      this.rebuildScrollAnchorsTimer = null;
+      this.rebuildScrollAnchors();
+    }, 0);
+  }
+
+  public markAnchorOffsetsDirty(): void {
+    this.anchorOffsetsDirty = true;
   }
 
   constructor() {
@@ -126,7 +143,7 @@ export class ScrollSyncService {
     this.lastHighlightElement = null;
     this.lastVisibleIndex = -1;
     this.visibleMessageMetrics.clear();
-    this.refreshAnchorOffsets();
+    this.markAnchorOffsetsDirty();
     this.syncOutlineScroll();
   }
 
@@ -475,6 +492,7 @@ export class ScrollSyncService {
   public rebuildScrollAnchors(): void {
     if (!this.scrollContainer) {
       this.scrollAnchors = [];
+      this.anchorOffsetsDirty = true;
       return;
     }
 
@@ -497,11 +515,12 @@ export class ScrollSyncService {
     }
 
     this.scrollAnchors = nextAnchors;
+    this.anchorOffsetsDirty = true;
     this.refreshAnchorOffsets();
   }
 
   public refreshAnchorOffsets(): void {
-    if (!this.scrollContainer || this.scrollAnchors.length === 0) {
+    if (!this.scrollContainer || this.scrollAnchors.length === 0 || !this.anchorOffsetsDirty) {
       return;
     }
 
@@ -524,6 +543,8 @@ export class ScrollSyncService {
 
       return left.type === right.type ? 0 : left.type === 'message' ? -1 : 1;
     });
+
+    this.anchorOffsetsDirty = false;
   }
 
   private appendHeaderAnchors(headers: NonNullable<ReturnType<typeof messageCacheManager.getCache>[number]['outlineItem']['headers']>, anchors: ScrollAnchor[]): void {
@@ -607,6 +628,11 @@ export class ScrollSyncService {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
+    }
+
+    if (this.rebuildScrollAnchorsTimer) {
+      clearTimeout(this.rebuildScrollAnchorsTimer);
+      this.rebuildScrollAnchorsTimer = null;
     }
 
     this.scrollHandler = null;

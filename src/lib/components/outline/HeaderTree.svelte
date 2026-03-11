@@ -20,7 +20,9 @@
   $effect(() => {
     if (allExpanded !== undefined) {
       nodes.forEach((node) => {
-        expandedStates[node.id] = allExpanded;
+        if (expandedStates[node.id] !== allExpanded) {
+          expandedStates[node.id] = allExpanded;
+        }
       });
     }
   });
