@@ -16,7 +16,7 @@
   let containerElement: HTMLDivElement | undefined = $state();
 
   function scrollToElement() {
-    scrollSyncService.setLastHighlightElement(containerElement);
+    scrollSyncService.focusOutlineElement(containerElement);
     item.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(item.element);
   }
@@ -40,6 +40,7 @@
   $effect(() => {
     if (containerElement && item.id) {
       messageCacheManager.updateOutlineElement(item.id, containerElement);
+      scrollSyncService.rebuildScrollAnchors();
     }
   });
 </script>

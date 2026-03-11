@@ -30,6 +30,10 @@ export function buildMessageHash(index: number, text: string): string {
 }
 
 export function buildHeaderTree(headers: Element[]): HeaderTreeNode[] {
+  return buildHeaderTreeWithPrefix(headers, '');
+}
+
+export function buildHeaderTreeWithPrefix(headers: Element[], prefix: string): HeaderTreeNode[] {
   const tree: HeaderTreeNode[] = [];
   const stack: HeaderTreeNode[] = [];
 
@@ -48,7 +52,8 @@ export function buildHeaderTree(headers: Element[]): HeaderTreeNode[] {
     }
 
     const parent = stack[stack.length - 1];
-    node.id = parent ? `${parent.id}.${parent.children.length}` : `${tree.length}`;
+    const localId = parent ? `${parent.id}.${parent.children.length}` : `${tree.length}`;
+    node.id = prefix ? `${prefix}:${localId}` : localId;
 
     if (parent) {
       parent.children.push(node);
@@ -66,6 +71,7 @@ export function buildOutlineData(
   messageElement: Element,
   type: MessageOwner,
   textLength: number,
+  headerIdPrefix = '',
 ): OutlineBuildResult {
   const searchText = getMessageText(messageElement);
   const text = searchText.substring(0, textLength) + (searchText.length > textLength ? '...' : '');
@@ -78,7 +84,7 @@ export function buildOutlineData(
   return {
     text,
     searchText,
-    headers: headers.length > 0 ? buildHeaderTree(Array.from(headers)) : undefined
+    headers: headers.length > 0 ? buildHeaderTreeWithPrefix(Array.from(headers), headerIdPrefix) : undefined
   };
 }
 
@@ -90,7 +96,7 @@ export function createOutlineViewItem(params: {
   textLength: number;
 }): OutlineItem {
   const { id, index, type, element, textLength } = params;
-  const built = buildOutlineData(element, type, textLength);
+  const built = buildOutlineData(element, type, textLength, id);
 
   return {
     id,

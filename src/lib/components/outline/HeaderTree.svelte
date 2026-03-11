@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { HeaderTreeNode } from '../../types';
   import { highlightElement } from '../../utils';
+  import { scrollSyncService } from '../../services/scrollSyncService';
   // 自导入用于递归渲染（Svelte 5 推荐方式）
   import HeaderTree from './HeaderTree.svelte';
 
@@ -31,8 +32,19 @@
 
   function scrollToElement(element: Element, e: Event) {
     e.stopPropagation();
+    scrollSyncService.focusOutlineElement(e.currentTarget as Element);
     element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(element);
+  }
+
+  function registerNode(element: Element, nodeId: string) {
+    scrollSyncService.registerHeaderOutlineElement(nodeId, element);
+
+    return {
+      destroy() {
+        scrollSyncService.unregisterHeaderOutlineElement(nodeId);
+      }
+    };
   }
 </script>
 
@@ -41,6 +53,7 @@
     <div class="tree-node-wrapper">
       <div
         class="tree-node header-level-{node.level}"
+        use:registerNode={node.id}
         onclick={(e) => scrollToElement(node.element, e)}
         role="button"
         tabindex="0"
