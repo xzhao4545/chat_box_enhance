@@ -1,74 +1,60 @@
-# 功能特性
+# 功能列表
 
 ## 核心功能
 
 | 功能 | 说明 | 实现位置 |
 |------|------|----------|
-| 智能大纲生成 | 解析对话内容，生成可交互大纲 | `services/outline.ts` |
-| 消息缓存 | 缓存已解析消息，智能检测变化 | `services/messageCacheManager.ts` |
-| 滚动同步 | 消息列表滚动时同步大纲位置 | `services/scrollSyncService.ts` |
-| 大纲搜索 | 支持正则表达式搜索大纲内容 | `components/outline/OutlineHeader.svelte` |
-| 多平台支持 | 适配多个AI聊天平台 | `platform/*.ts` |
-| 主题切换 | 亮色/暗色主题 | `stores/theme.ts` |
-| 设置管理 | 功能开关和配置项管理 | `stores/features.ts` |
-| 日志系统 | 可配置的日志级别 | `services/logger.ts` |
+| 智能大纲生成 | 解析对话内容并生成树形大纲 | `src/lib/services/outline.ts` |
+| 大纲运行时管理 | 统一管理大纲挂载、刷新、监听和销毁 | `src/lib/services/outlineRuntimeService.ts` |
+| DOM 动态监听 | 监听聊天内容变化并触发大纲刷新 | `src/lib/services/observer.ts` |
+| 消息缓存 | 缓存已解析消息，减少重复构建 | `src/lib/services/messageCacheManager.ts` |
+| 滚动同步 | 聊天区域滚动时同步定位大纲项 | `src/lib/services/scrollSyncService.ts` |
+| 大纲搜索 | 支持普通文本与正则搜索 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 多平台支持 | 适配多个 AI 对话页面 | `src/lib/platform/*.ts` |
+| 主题切换 | 明亮/暗色主题切换 | `src/lib/stores/theme.ts` |
+| 设置管理 | 功能开关与配置项持久化 | `src/lib/stores/features.ts` |
+| 日志系统 | 可配置日志级别 | `src/lib/services/logger.ts` |
 
 ## 平台支持
 
 | 平台 | 域名 |
 |------|------|
-| ChatGPT | chatgpt.com |
-| DeepSeek | chat.deepseek.com |
-| 豆包 | *.doubao.com |
-| Grok | grok.com |
-| 通义千问 | www.qianwen.com |
-| Qwen | chat.qwen.ai |
-| Kimi | www.kimi.com |
+| ChatGPT | `chatgpt.com` |
+| DeepSeek | `chat.deepseek.com` |
+| 豆包 | `*.doubao.com` |
+| Grok | `grok.com` |
+| 通义千问 | `www.qianwen.com` |
+| Qwen | `chat.qwen.ai` |
+| Kimi | `www.kimi.com` |
 
-## 控制功能
+## 面板控制项
 
 | 按钮 | 功能 | 实现位置 |
 |------|------|----------|
-| 🔄 | 强制刷新大纲 | `components/outline/OutlineHeader.svelte` |
-| 📂/📁 | 展开/收起所有 | `components/outline/OutlineHeader.svelte` |
-| 🌙/☀️ | 切换主题 | `stores/theme.ts` |
-| 📍 | 同步大纲位置 | `services/scrollSyncService.ts` |
-| 🔍 | 搜索大纲 | `components/outline/OutlineHeader.svelte` |
-| ⚙️ | 打开设置面板 | `components/outline/SettingsModal.svelte` |
-| ✕ | 隐藏面板 | `components/outline/OutlinePanel.svelte` |
+| 刷新 | 强制刷新大纲 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 同步 | 手动同步大纲位置 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 展开/收起 | 切换全部节点展开状态 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 主题 | 切换明暗主题 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 搜索 | 过滤大纲内容 | `src/lib/components/outline/OutlineHeader.svelte` |
+| 设置 | 打开设置面板 | `src/lib/components/outline/SettingsModal.svelte` |
+| 隐藏 | 隐藏大纲面板 | `src/lib/components/outline/OutlinePanel.svelte` |
 
 ## 配置项
 
 | 配置 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| `autoExpand` | boolean | true | 自动展开节点 |
-| `showUserMessages` | boolean | true | 显示用户消息 |
-| `showAIMessages` | boolean | true | 显示AI回复 |
-| `isVisible` | boolean | true | 大纲可见性 |
-| `textLength` | number | 50 | 大纲文字截取长度 |
-| `debouncedInterval` | number | 500 | 防抖间隔(ms) |
-| `syncScroll` | boolean | true | 滚动同步开关 |
-| `logLevel` | string | 'info' | 日志级别 |
+| `autoExpand` | boolean | `true` | 自动展开节点 |
+| `showUserMessages` | boolean | `true` | 显示用户消息 |
+| `showAIMessages` | boolean | `true` | 显示 AI 回复 |
+| `isVisible` | boolean | `true` | 控制大纲面板显示 |
+| `textLength` | number | `50` | 大纲文本截断长度 |
+| `debouncedInterval` | number | `500` | DOM 更新防抖时间（ms） |
+| `syncScroll` | boolean | `true` | 启用滚动同步 |
+| `logLevel` | string | `'info'` | 日志级别 |
 
-详见 [SETTINGS.md](./SETTINGS.md)
+## 本次架构调整
 
-## UI 组件
+- 已新增 `outlineRuntimeService` 作为统一运行时入口
+- `App.svelte` 不再直接处理大纲挂载、Observer 注册和刷新逻辑
+- `outline.ts` 与 `observer.ts` 对外优先以 `outlineService`、`observerService` 形式使用
 
-| 组件 | 说明 | 文件 |
-|------|------|------|
-| OutlinePanel | 大纲面板容器 | `components/outline/OutlinePanel.svelte` |
-| OutlineHeader | 工具栏和搜索栏 | `components/outline/OutlineHeader.svelte` |
-| OutlineList | 大纲列表 | `components/outline/OutlineList.svelte` |
-| OutlineItem | 单个大纲项 | `components/outline/OutlineItem.svelte` |
-| HeaderTree | 标题树节点 | `components/outline/HeaderTree.svelte` |
-| SettingsModal | 设置弹窗 | `components/outline/SettingsModal.svelte` |
-| DraggableToggleButton | 可拖拽切换按钮 | `components/outline/DraggableToggleButton.svelte` |
-
-## 添加新平台
-
-1. 创建 `src/lib/platform/newplatform.ts`，实现 `ParserConfig` 接口
-2. 在 `src/lib/stores/platform.ts` 的 `judgePlatform()` 添加域名判断
-3. 在 `src/lib/platform/index.ts` 导出配置
-4. 测试各项功能（大纲生成、滚动同步、搜索等）
-
-详见 [ARCHITECTURE.md](./ARCHITECTURE.md)

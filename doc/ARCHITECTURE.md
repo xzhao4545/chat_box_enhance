@@ -2,78 +2,87 @@
 
 ## 技术栈
 
-- **框架**: Svelte 5 (Runes API)
+- **框架**: Svelte 5（Runes API）
 - **构建**: Vite 7 + vite-plugin-monkey
 - **语言**: TypeScript 5
-- **状态**: Svelte Stores
+- **状态管理**: Svelte Stores
 - **包管理**: pnpm
 
 ## 核心模块
 
-### 服务层 (`services/`)
+### 服务层（`src/lib/services/`）
 
 | 服务 | 职责 |
 |------|------|
-| `outline.ts` | 大纲生成、刷新逻辑 |
-| `messageCacheManager.ts` | 消息缓存管理、变更检测 |
-| `scrollSyncService.ts` | 滚动同步服务 |
-| `observer.ts` | MutationObserver 监听DOM变化 |
-| `logger.ts` | 日志服务，支持可配置日志级别 |
+| `outlineRuntimeService.ts` | 统一编排大纲挂载、初始化刷新、监听注册、销毁清理 |
+| `outline.ts` | 负责大纲数据生成、刷新逻辑、缓存驱动更新 |
+| `observer.ts` | 封装 `MutationObserver`，监听聊天 DOM 变化 |
+| `messageCacheManager.ts` | 消息缓存管理、增量更新判断、缓存重建 |
+| `scrollSyncService.ts` | 大纲与聊天区域的滚动同步 |
+| `logger.ts` | 统一日志输出与日志级别控制 |
 
-### 状态管理 (`stores/`)
+### 状态层（`src/lib/stores/`）
 
 | Store | 用途 |
-|-------|------|
-| `themeStore` | 主题配置（亮色/暗色） |
-| `featuresStore` | 功能开关和配置项 |
-| `outlineStore` | 大纲数据和状态 |
-| `platformStore` | 平台判断和配置 |
-| `messageCacheStore` | 消息缓存状态 |
+|------|------|
+| `themeStore` | 管理明暗主题 |
+| `featuresStore` | 管理功能开关与配置项 |
+| `outlineStore` | 保存当前大纲数据 |
+| `platformStore` / `parserConfigStore` | 当前平台与解析配置 |
+| `messageCacheStore` | 缓存状态辅助存储 |
 
-### 平台适配 (`platform/`)
+### 平台适配层（`src/lib/platform/`）
 
-实现 `ParserConfig` 接口：
+各平台通过实现 `ParserConfig` 接口接入：
 
-```typescript
+```ts
 interface ParserConfig {
-  selectChatArea: () => Element | null;           // 获取聊天区域
-  getMessageList: (root: Element) => ...;          // 获取消息列表
-  determineMessageOwner: (ele: Element) => ...;    // 判断消息类型
-  getOutlineContainer: () => Element | null;       // 大纲挂载容器
-  getScrollContainer?: (chatArea: Element) => ...; // 滚动容器（可选）
+  init?: () => undefined;
+  afterGetContainer?: (outlineContainer: Element) => undefined;
+  afterGetChatArea?: (chatArea: Element) => undefined;
+  selectChatArea: () => Element | null | undefined;
+  getMessageList: (root: Element) => HTMLCollection | Element[] | NodeListOf<Element> | null;
+  determineMessageOwner: (messageEle: Element) => MessageOwner;
+  getOutlineContainer: () => Element | null;
+  getScrollContainer?: (chatArea: Element) => Element | null;
+  timeout?: number;
 }
 ```
 
-## 数据流
+## 运行时流程
 
+```text
+App.svelte
+  -> 判断平台并获取 parserConfig
+  -> outlineRuntimeService.start(parserConfig)
+      -> 获取大纲挂载容器
+      -> 挂载 OutlinePanel
+      -> 获取 chatArea
+      -> outlineService.refresh()
+      -> scrollSyncService.init()
+      -> observerService.setup()
+  -> DOM 变化后触发 observer 回调
+      -> outlineService.refresh()
+      -> outlineStore 更新
+      -> Svelte 组件响应式渲染
 ```
-DOM变化 → observerService → outlineService.refresh
-                              ↓
-                    messageCacheManager.smartRebuildCache
-                              ↓
-                         outlineStore更新
-                              ↓
-                        Svelte响应式渲染
-                              ↓
-                    scrollSyncService（可选）
-```
 
-## 新增功能架构
+## 当前职责划分
 
-### 搜索功能
-- 位置: `OutlineHeader.svelte`
-- 支持正则表达式
-- 实时过滤大纲项
+- `App.svelte`
+  - 仅保留入口职责：平台判断、启动、销毁
+- `outlineRuntimeService`
+  - 作为大纲运行时统一入口
+  - 负责串联挂载、首次刷新、动态监听、清理销毁
+- `outlineService`
+  - 负责大纲数据本身的刷新与强制刷新
+- `observerService`
+  - 负责 DOM 变化监听，不直接参与 UI 挂载
+- `scrollSyncService`
+  - 负责滚动同步与高亮逻辑
 
-### 设置面板
-- 位置: `SettingsModal.svelte`
-- 持久化存储: `GM_setValue/GM_getValue`
-- 配置项详见 [SETTINGS.md](./SETTINGS.md)
+## 说明
 
-### 拖拽按钮
-- 位置: `DraggableToggleButton.svelte`
-- 隐藏大纲时显示
-- 可拖拽到任意位置
-- 位置持久化存储
+- 当前已将“刷新大纲内容”“挂载监听”“动态更新”统一收口到 `outlineRuntimeService`
+- `outline.ts` 与 `observer.ts` 仍保留为内部能力模块，对外优先通过 service 对象调用
 
-详见 [FEATURES.md](./FEATURES.md) | [STRUCTURE.md](./STRUCTURE.md)

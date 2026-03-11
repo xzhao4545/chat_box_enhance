@@ -1,85 +1,126 @@
-# 聊天助手大纲 (Chat Assistant Outline)
+# chat_box_enhance
 
-一个支持多个AI聊天平台的用户脚本，为对话生成可交互的大纲视图，提升聊天体验和内容导航效率。
-作者很懒，仅保证常用的DeepSeek可用。
+一个用于多个 AI Web 对话页面的油猴脚本，为聊天内容生成树形大纲，便于快速定位上下文、标题结构和关键回复。
 
-## 功能特性
+## 功能概览
 
-### 🎯 核心功能
-- **智能大纲生成**: 自动解析对话内容，生成结构化大纲
-- **多平台支持**: 支持 ChatGPT、DeepSeek、豆包、Grok、通义千问、Qwen、Kimi 等主流AI平台
-- **实时更新**: 监听对话变化，实时更新大纲内容
-- **层级结构**: 自动识别Markdown标题，构建可展开的树形结构
-- **大纲跟随**: 滚动对话时自动高亮当前位置对应的大纲项
-- **搜索功能**: 支持正则表达式搜索大纲内容
+- 自动解析聊天消息并生成大纲
+- 支持用户消息与 AI 消息分组展示
+- 自动识别 Markdown 标题并生成层级结构
+- 支持聊天内容动态更新后的实时刷新
+- 支持大纲搜索与正则过滤
+- 支持滚动同步与当前位置高亮
+- 支持主题切换、显示隐藏、设置面板
+- 支持多个 AI 对话平台
 
-### 🎨 界面特性
-- **双主题模式**: 支持明亮/暗黑主题切换
-- **响应式设计**: 自适应不同屏幕尺寸
-- **动画效果**: 平滑的展开/收起动画和高亮效果
-- **可视化标识**: 用户消息(👤)和AI回复(🤖)的直观区分
-- **拖拽按钮**: 隐藏大纲时可拖拽切换按钮到任意位置
-- **设置面板**: 可自定义功能开关和显示选项
+## 当前支持平台
 
-## 支持平台
+| 平台 | 域名 | 大纲跟随 |
+|------|------|----------|
+| ChatGPT | `chatgpt.com` | ✅支持 |
+| DeepSeek | `chat.deepseek.com` | ✅支持 |
+| 豆包 | `*.doubao.com` | ✅支持 |
+| Grok | `grok.com` | ✅支持 |
+| 通义千问 | `www.qianwen.com` | ❌不支持 |
+| Qwen | `chat.qwen.ai` | ✅支持 |
+| Kimi | `www.kimi.com` | ✅支持 |
 
-| 平台 | 域名 | 状态 |
-|------|------|------|
-| ChatGPT | chatgpt.com | ✅ 支持 |
-| DeepSeek | chat.deepseek.com | ✅ 支持 |
-| 豆包 | *.doubao.com | ✅ 支持 |
-| Grok | grok.com | ✅ 支持 |
-| 通义千问 | www.qianwen.com | ✅ 支持 |
-| Qwen | chat.qwen.ai | ✅ 支持 |
-| Kimi | www.kimi.com | ✅ 支持 |
+## 安装方式
 
-## 安装使用
+1. 安装浏览器扩展 [Tampermonkey](https://www.tampermonkey.net/)
+2. 从项目发布页下载最新的 `chat_box_enhance.user.js`
+3. 使用 Tampermonkey 安装脚本
+4. 打开支持的 AI 对话页面后脚本会自动生效
 
-### 安装步骤
-1. 安装 [Tampermonkey](https://www.tampermonkey.net/) 浏览器扩展
-2. 从 [GitHub Releases](https://github.com/xzhao4545/chat_box_enhance/releases) 下载最新版本的 `chat_box_enhance.user.js`
-3. 点击文件安装到 Tampermonkey
-4. 访问支持的AI聊天平台即可自动启用
+## 使用说明
 
-### 使用说明
-- 大纲面板会自动出现在聊天界面右侧
+- 大纲面板会自动插入到页面对应区域
+- 若目标容器无法挂载，会回退到右侧固定面板模式
 - 点击大纲项可快速跳转到对应消息
-- 使用工具栏按钮进行个性化设置
-- 点击设置按钮(⚙️)可打开详细配置面板
+- 点击标题节点可跳转到对应标题位置
+- 可通过顶部工具栏进行刷新、同步、筛选、主题切换与设置
 
-## 界面控制
+## 主要按钮
 
-### 工具栏按钮
-- **🔄 刷新**: 强制刷新大纲内容
-- **📂/📁 展开/收起**: 批量展开或收起所有节点
-- **🌙/☀️ 主题**: 切换明亮/暗黑主题
-- **📍 同步**: 手动同步大纲到当前滚动位置
-- **🔍 搜索**: 搜索大纲内容（支持正则表达式）
-- **⚙️ 设置**: 打开设置面板
-- **✕ 隐藏**: 隐藏大纲面板（显示可拖拽的切换按钮）
+| 按钮 | 作用 |
+|------|------|
+| 刷新 | 强制刷新大纲 |
+| 同步 | 手动同步大纲定位 |
+| 展开/收起 | 切换全部节点展开状态 |
+| 主题 | 切换明暗主题 |
+| 搜索 | 按文本或正则过滤大纲 |
+| 设置 | 打开设置面板 |
+| 隐藏 | 隐藏大纲面板 |
 
-### 快捷操作
-- 点击消息项: 跳转到对应对话位置
-- 点击标题节点: 跳转到具体标题位置
-- 展开/收起按钮: 控制子内容显示
-- 拖拽切换按钮: 隐藏大纲时可拖拽按钮到任意位置
+## 项目架构
 
-## 贡献指南
+当前项目已将“大纲挂载、刷新、监听、动态更新”统一收口到运行时 service：
 
-欢迎提交 Issue 和 Pull Request 来改进这个项目！
+- `src/App.svelte`
+  - 仅负责入口启动和销毁
+- `src/lib/services/outlineRuntimeService.ts`
+  - 统一管理大纲挂载
+  - 统一执行首次刷新
+  - 统一注册 `MutationObserver`
+  - 统一处理销毁清理
+- `src/lib/services/outline.ts`
+  - 负责大纲数据生成、增量刷新与强制刷新
+- `src/lib/services/observer.ts`
+  - 负责 DOM 变化监听
+- `src/lib/services/scrollSyncService.ts`
+  - 负责滚动同步与高亮逻辑
 
-### 如何贡献
-1. Fork 本仓库: [https://github.com/xzhao4545/chat_box_enhance](https://github.com/xzhao4545/chat_box_enhance)
-2. 创建你的功能分支
-3. 提交你的更改
-4. 推送到分支
-5. 创建 Pull Request
+### 运行流程
 
-### 添加新平台支持
-1. 在 `src/lib/platform/` 创建新平台配置文件
-2. 实现 `ParserConfig` 接口
-3. 在 `src/lib/stores/platform.ts` 的 `judgePlatform()` 添加域名判断
-4. 在 `src/lib/platform/index.ts` 导出配置
-5. 测试并提交代码
+```text
+App.svelte
+  -> outlineRuntimeService.start(parserConfig)
+      -> 挂载 OutlinePanel
+      -> 刷新大纲数据
+      -> 初始化滚动同步
+      -> 注册 DOM 监听
 
-详见 [开发文档](./doc/)
+DOM 变化
+  -> observerService
+      -> outlineService.refresh()
+      -> 更新 outlineStore
+      -> Svelte 组件重新渲染
+```
+
+## 开发命令
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm dev` | 启动开发模式 |
+| `pnpm build` | 构建生产版本 |
+| `pnpm preview` | 预览构建结果 |
+| `pnpm check` | 运行类型与 Svelte 检查 |
+
+## 目录参考
+
+- 架构说明：`doc/ARCHITECTURE.md`
+- 功能列表：`doc/FEATURES.md`
+- 目录结构：`doc/STRUCTURE.md`
+- 设置配置：`doc/SETTINGS.md`
+- 待办事项：`doc/TODO.md`
+- 变更记录：`CHANGELOG.md`
+
+## 开发说明
+
+如果要新增平台支持，通常需要：
+
+1. 在 `src/lib/platform/` 中新增平台适配文件
+2. 实现对应的 `ParserConfig`
+3. 在平台判断逻辑中注册该平台
+4. 完成页面挂载、消息提取与滚动容器适配
+
+如果要修改大纲运行流程，优先查看：
+
+- `src/lib/services/outlineRuntimeService.ts`
+- `src/lib/services/outline.ts`
+- `src/lib/services/observer.ts`
+
+## 贡献
+
+欢迎提交 Issue 或 Pull Request 来改进这个项目。
+
