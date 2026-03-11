@@ -70,7 +70,7 @@
 
 /* 高亮动画 */
 .highlight-animation {
-  animation: highlight 0.5s ease-in-out;
+  animation: highlight 1s ease-in-out;
 }
 
 @keyframes highlight {
