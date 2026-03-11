@@ -50,7 +50,7 @@ export function refreshOutlineItems(parserConfig: ParserConfig): void {
 }
 
 // 单行注释：说明复杂逻辑
-const hash = generateMessageHash(index, element);
+const hash = buildMessageHash(index, element.textContent || '');
 ```
 
 ## 错误处理
@@ -76,7 +76,7 @@ try { } catch (e) { }
 2. **防抖**: DOM变化时使用防抖延迟更新
 3. **惰性加载**: 仅在需要时创建对象
 4. **DOM操作**: 批量更新，减少重绘
-5. **滚动监听**: 使用节流优化滚动同步性能
+5. **滚动监听**: 优先使用锚点定位，必要时再回退到可见性观察或扫描
 
 ## 组件开发规范
 

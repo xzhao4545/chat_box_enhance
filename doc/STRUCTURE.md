@@ -39,7 +39,6 @@ chat_box_enhance/
 │     │  ├─ messageSourceService.ts
 │     │  ├─ messageCacheManager.ts
 │     │  ├─ observer.ts
-│     │  ├─ outline.ts
 │     │  ├─ outlineRefreshService.ts
 │     │  ├─ outlineRuntimeService.ts
 │     │  └─ scrollSyncService.ts
@@ -67,7 +66,6 @@ chat_box_enhance/
 | `src/App.svelte` | 项目入口组件，负责平台识别与运行时 service 生命周期 |
 | `src/lib/services/outlineRuntimeService.ts` | 当前大纲功能的统一运行时入口 |
 | `src/lib/services/outlineRefreshService.ts` | 大纲数据刷新、强制刷新与刷新后同步逻辑 |
-| `src/lib/services/outline.ts` | 兼容层，对外继续导出 `outlineService` |
 | `src/lib/services/messageSourceService.ts` | 消息采集与 chatArea 缓存 |
 | `src/lib/services/observer.ts` | DOM 变化监听服务 |
 | `src/lib/services/scrollSyncService.ts` | 大纲与聊天滚动同步、锚点构建与自动跟随 |
@@ -80,7 +78,7 @@ chat_box_enhance/
 ```text
 App.svelte
   -> outlineRuntimeService.start()
-      -> outlineService.refresh()
+      -> outlineRefreshService.refresh()
       -> observerService.setup()
       -> scrollSyncService.init()
 

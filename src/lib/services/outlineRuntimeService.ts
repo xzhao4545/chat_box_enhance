@@ -5,7 +5,7 @@ import type { ParserConfig } from '../types';
 import { getEleWithRetry } from '../utils';
 import { logger } from './logger';
 import { observerService } from './observer';
-import { outlineService } from './outline';
+import { outlineRefreshService } from './outlineRefreshService';
 import { scrollSyncService } from './scrollSyncService';
 
 type OutlineComponentInstance = Record<string, any> | null;
@@ -101,7 +101,7 @@ class OutlineRuntimeService {
       return;
     }
 
-    outlineService.refresh(this.parserConfig);
+    outlineRefreshService.refresh(this.parserConfig);
   }
 
   public forceRefresh(): void {
@@ -114,7 +114,7 @@ class OutlineRuntimeService {
       return;
     }
 
-    outlineService.forceRefresh(this.parserConfig);
+    outlineRefreshService.forceRefresh(this.parserConfig);
     setServiceStatus('outlineRuntime', {
       state: 'ready',
       message: 'chatArea 已获取，监听保持绑定，大纲已刷新'

@@ -52,10 +52,6 @@ export class ScrollSyncService {
   private anchorOffsetsDirty = true;
   private rebuildScrollAnchorsTimer: ReturnType<typeof setTimeout> | null = null;
 
-  public setLastHighlightElement(element: Element | null | undefined): void {
-    this.lastHighlightElement = element;
-  }
-
   public focusOutlineElement(outlineElement: Element | null | undefined): void {
     if (!outlineElement) {
       return;

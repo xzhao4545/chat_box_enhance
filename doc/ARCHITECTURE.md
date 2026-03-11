@@ -16,7 +16,6 @@
 |------|------|
 | `outlineRuntimeService.ts` | 统一编排大纲挂载、初始化刷新、监听注册、销毁清理 |
 | `outlineRefreshService.ts` | 负责大纲刷新主流程：消息采集、缓存重建、store 更新、刷新后同步 |
-| `outline.ts` | 对外兼容层，继续导出 `outlineService` |
 | `messageSourceService.ts` | 统一负责 chatArea 缓存、消息列表采集与 `cbe-message-id` 补齐 |
 | `observer.ts` | 封装 `MutationObserver`，监听聊天 DOM 变化 |
 | `messageCacheManager.ts` | 消息缓存管理、索引化复用、DOM 引用登记 |
@@ -31,7 +30,6 @@
 | `featuresStore` | 管理功能开关与配置项 |
 | `outlineStore` | 保存当前大纲数据 |
 | `platformStore` / `parserConfigStore` | 当前平台与解析配置 |
-| `messageCacheStore` | 缓存状态辅助存储 |
 
 ### 平台适配层（`src/lib/platform/`）
 
@@ -60,11 +58,11 @@ App.svelte
       -> 获取大纲挂载容器
       -> 挂载 OutlinePanel
       -> 获取 chatArea
-      -> outlineService.refresh()
+      -> outlineRefreshService.refresh()
       -> scrollSyncService.init()
       -> observerService.setup()
   -> DOM 变化后触发 observer 回调
-      -> outlineService.refresh()
+      -> outlineRefreshService.refresh()
       -> outlineStore 更新
       -> Svelte 组件响应式渲染
 ```
@@ -93,5 +91,4 @@ App.svelte
 ## 说明
 
 - 当前已形成“运行时编排 → 消息采集 → 大纲刷新 → 滚动同步”的分层链路
-- `outline.ts` 作为兼容层保留，对外优先通过 service 对象调用
 - `scrollSyncService` 当前采用“锚点式定位 + 可见性观察/扫描回退”的混合策略，支持标题树节点自动跟随
