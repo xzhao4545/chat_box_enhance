@@ -27,14 +27,14 @@ export class ScrollSyncService {
   private parserConfig: ParserConfig | null = null;
   private currentHighlightedElement: Element | null = null;
   private highlightTimer: ReturnType<typeof setTimeout> | null = null;
-  private lastHighlightElement: Element | null = null;
+  private lastHighlightElement: Element | null | undefined = null;
   private autoRetryTimer: ReturnType<typeof setTimeout> | null = null;
   private postRefreshCheckTimer: ReturnType<typeof setTimeout> | null = null;
   private isBinding = false;
   private retryGeneration = 0;
   private autoRetryCount = 0;
 
-  public setLastHighlightElement(element: Element | null): void {
+  public setLastHighlightElement(element: Element | null | undefined): void {
     this.lastHighlightElement = element;
   }
 
@@ -423,8 +423,7 @@ export class ScrollSyncService {
       return -1;
     }
 
-    const containerRect = this.scrollContainer.getBoundingClientRect();
-    const containerTop = containerRect.top + containerRect.height * 0.1;
+    const containerTop = this.scrollContainer.getBoundingClientRect().top+10;
     const messageElements = this.scrollContainer.querySelectorAll('[cbe-message-id]');
 
     let visibleIndex = -1;

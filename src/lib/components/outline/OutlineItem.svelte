@@ -16,7 +16,7 @@
   let containerElement: HTMLDivElement | undefined = $state();
 
   function scrollToElement() {
-    scrollSyncService.setLastHighlightElement(item.element);
+    scrollSyncService.setLastHighlightElement(containerElement);
     item.element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(item.element);
   }

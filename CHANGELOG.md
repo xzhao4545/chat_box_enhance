@@ -2,10 +2,16 @@
 
 ## [Unreleased]
 
+## [0.1.1] 2026-03-11
+
 - 重构大纲运行时架构：新增 `src/lib/services/outlineRuntimeService.ts`
 - 将“大纲挂载、首次刷新、MutationObserver 注册、销毁清理”统一收口到运行时 service
 - `src/App.svelte` 精简为入口启动与销毁职责
 - `src/lib/services/outline.ts` 与 `src/lib/services/observer.ts` 收口为 service 对象对外提供能力
+- 优化大纲滚动跟随逻辑
+- 新增通知弹窗与状态栏
+- 修复 GM 方法注入失败时的兜底处理
+- 修复一个构建警告
 - 更新 `README.md` 与 `doc/ARCHITECTURE.md`、`doc/FEATURES.md`、`doc/STRUCTURE.md` 文档说明
 
 ## [0.1.0] 2026-03-05
@@ -44,4 +50,3 @@
 - 支持 6 个主流 AI 聊天平台
 - 实现基础大纲功能和主题切换
 - 增加性能优化和缓存机制
-
