@@ -35,6 +35,8 @@ export class ScrollSyncService {
   private autoRetryCount = 0;
   private lastSyncScrollEnabled: boolean | null = null;
   private lastVisibleIndex = -1;
+  private intersectionObserver: IntersectionObserver | null = null;
+  private visibleMessageMetrics = new Map<string, { top: number; bottom: number }>();
 
   public setLastHighlightElement(element: Element | null | undefined): void {
     this.lastHighlightElement = element;
@@ -91,6 +93,7 @@ export class ScrollSyncService {
     logger.info('手动同步大纲滚动');
     this.lastHighlightElement = null;
     this.lastVisibleIndex = -1;
+    this.visibleMessageMetrics.clear();
     this.syncOutlineScroll();
   }
 
@@ -150,6 +153,7 @@ export class ScrollSyncService {
     this.parserConfig = parserConfig;
     this.scrollContainer = null;
     this.autoRetryCount = 0;
+    this.disconnectIntersectionObserver();
     this.unbindScrollListener();
 
     if (!get(featuresStore).syncScroll) {
@@ -164,6 +168,7 @@ export class ScrollSyncService {
   public destroy(resetStatus = true): void {
     this.clearAutoRetryTimer();
     this.clearPostRefreshCheckTimer();
+    this.disconnectIntersectionObserver();
     this.unbindScrollListener();
 
     if (this.highlightTimer) {
@@ -178,6 +183,7 @@ export class ScrollSyncService {
     this.currentHighlightedElement = null;
     this.lastHighlightElement = null;
     this.lastVisibleIndex = -1;
+    this.visibleMessageMetrics.clear();
     this.isBinding = false;
     this.retryGeneration += 1;
     this.autoRetryCount = 0;
@@ -268,6 +274,7 @@ export class ScrollSyncService {
       logger.info('绑定滚动监听成功，容器:', this.scrollContainer);
       this.autoRetryCount = 0;
       this.updateStatus('ready', '滚动监听已成功绑定');
+      this.observeVisibleMessages();
 
       if (shouldTriggerInitialSync) {
         this.triggerInitialSync();
@@ -376,6 +383,8 @@ export class ScrollSyncService {
       return;
     }
 
+    this.observeVisibleMessages();
+
     if (this.needsRebind()) {
       this.updateStatus('syncing', '大纲已刷新，正在校正滚动监听绑定');
       await this.bindScrollListenerWithRetry('post-refresh', true, false);
@@ -415,6 +424,58 @@ export class ScrollSyncService {
     }, 0);
   }
 
+  private observeVisibleMessages(): void {
+    if (!this.scrollContainer || typeof IntersectionObserver === 'undefined') {
+      return;
+    }
+
+    this.disconnectIntersectionObserver();
+    this.visibleMessageMetrics.clear();
+
+    const cache = messageCacheManager.getCache();
+    if (cache.length === 0) {
+      return;
+    }
+
+    this.intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const messageId = (entry.target as Element).getAttribute('cbe-message-id');
+          if (!messageId) {
+            continue;
+          }
+
+          if (!entry.isIntersecting) {
+            this.visibleMessageMetrics.delete(messageId);
+            continue;
+          }
+
+          this.visibleMessageMetrics.set(messageId, {
+            top: entry.boundingClientRect.top,
+            bottom: entry.boundingClientRect.bottom,
+          });
+        }
+      },
+      {
+        root: this.scrollContainer,
+        threshold: [0, 0.1, 0.5],
+        rootMargin: '0px 0px -60% 0px'
+      }
+    );
+
+    for (const item of cache) {
+      this.intersectionObserver.observe(item.outlineItem.element);
+    }
+  }
+
+  private disconnectIntersectionObserver(): void {
+    if (this.intersectionObserver) {
+      this.intersectionObserver.disconnect();
+      this.intersectionObserver = null;
+    }
+    this.visibleMessageMetrics.clear();
+  }
+
   private unbindScrollListener(): void {
     if (this.scrollHandler && this.scrollContainer) {
       this.scrollContainer.removeEventListener('scroll', this.scrollHandler);
@@ -430,6 +491,12 @@ export class ScrollSyncService {
   }
 
   private findVisibleMessageIndex(): number {
+    const observedIndex = this.findVisibleMessageIndexFromObserver();
+    if (observedIndex !== -1) {
+      this.lastVisibleIndex = observedIndex;
+      return observedIndex;
+    }
+
     if (!this.scrollContainer) {
       return -1;
     }
@@ -450,6 +517,29 @@ export class ScrollSyncService {
     const fallbackIndex = this.findVisibleMessageIndexFull(cache, containerTop);
     this.lastVisibleIndex = fallbackIndex;
     return fallbackIndex;
+  }
+
+  private findVisibleMessageIndexFromObserver(): number {
+    if (!this.scrollContainer || this.visibleMessageMetrics.size === 0) {
+      return -1;
+    }
+
+    const rootTop = this.scrollContainer.getBoundingClientRect().top + 10;
+    let targetMessageId: string | null = null;
+    let targetTop = Number.POSITIVE_INFINITY;
+
+    for (const [messageId, metrics] of this.visibleMessageMetrics.entries()) {
+      if (metrics.bottom <= rootTop) {
+        continue;
+      }
+
+      if (metrics.top < targetTop) {
+        targetTop = metrics.top;
+        targetMessageId = messageId;
+      }
+    }
+
+    return messageCacheManager.getCacheIndexByMessageId(targetMessageId);
   }
 
   private findVisibleMessageIndexNear(cache: ReturnType<typeof messageCacheManager.getCache>, containerTop: number): number {

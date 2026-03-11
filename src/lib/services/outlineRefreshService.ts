@@ -10,34 +10,29 @@ import { generateUniqueId } from '../stores/messageCache';
 import { createOutlineViewItem } from '../utils/outlineBuilder';
 import { logger } from './logger';
 import { messageCacheManager } from './messageCacheManager';
+import { messageSourceService } from './messageSourceService';
 import { scrollSyncService } from './scrollSyncService';
 
 class OutlineRefreshService {
-  private cachedChatArea: Element | null = null;
-
   public getCachedChatArea(parserConfig: ParserConfig | null, forceRefresh = false): Element | null {
-    if (forceRefresh || !this.cachedChatArea) {
-      this.cachedChatArea = parserConfig?.selectChatArea() || null;
-      logger.debug('get chatArea:', this.cachedChatArea);
-    }
-
-    return this.cachedChatArea;
+    return messageSourceService.getCachedChatArea(parserConfig, forceRefresh);
   }
 
   public refresh(parserConfig: ParserConfig): void {
-    const chatArea = this.getCachedChatArea(parserConfig);
+    const { chatArea, messageElements } = messageSourceService.collect(parserConfig);
     if (!chatArea) {
       logger.warn('无法定位到对话区域');
       return;
     }
 
-    const messageListResult = parserConfig.getMessageList(chatArea);
-    if (messageListResult == null) {
+    if (messageElements.length === 0) {
+      const messageListResult = parserConfig.getMessageList(chatArea);
+      if (messageListResult == null) {
       logger.warn('对话区域无效，大纲生成失败, chatArea:', chatArea);
       return;
+      }
     }
 
-    const messageElements = Array.from(messageListResult);
     const features = get(featuresStore);
 
     logger.debug('刷新大纲, 消息数量:', messageElements.length, '缓存数量:', messageCacheManager.length);
@@ -81,7 +76,7 @@ class OutlineRefreshService {
   public forceRefresh(parserConfig: ParserConfig): void {
     logger.info('执行强制刷新...');
     messageCacheManager.clearCache();
-    this.cachedChatArea = null;
+    messageSourceService.clearChatAreaCache();
 
     const newChatArea = this.getCachedChatArea(parserConfig, true);
     if (!newChatArea) {
