@@ -15,6 +15,7 @@ export enum MessageOwner {
  * 标题节点树结构
  */
 export interface HeaderTreeNode {
+  id: string;
   element: Element;
   level: number;
   text: string;
@@ -28,7 +29,7 @@ export interface CachedMessage {
   messageId: string;
   messageHash: string;
   textLength: number;
-  outlineElement: Element;
+  outlineElement: Element | null;
   outlineItem: OutlineItem;
   timestamp: number;
 }
@@ -41,6 +42,7 @@ export interface OutlineItem {
   index: number;
   type: MessageOwner;
   text: string;
+  searchText: string;
   element: Element;
   headers?: HeaderTreeNode[];
   isExpanded?: boolean;

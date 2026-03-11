@@ -11,6 +11,49 @@ import { logger } from './logger';
 let currentObserver: MutationObserver | null = null;
 let debouncedRefresh: (() => void) | null = null;
 
+function getMessageHost(node: Node): Element | null {
+  if (node instanceof Element) {
+    return node.closest('[cbe-message-id]');
+  }
+
+  return node.parentElement?.closest('[cbe-message-id]') || null;
+}
+
+function hasRelevantMutation(mutations: MutationRecord[]): boolean {
+  let lastMessageHost: Element | null = null;
+
+  for (const mutation of mutations) {
+    if (mutation.type === 'childList') {
+      if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+        return true;
+      }
+      continue;
+    }
+
+    if (mutation.type !== 'characterData') {
+      continue;
+    }
+
+    const messageHost = getMessageHost(mutation.target);
+    if (!messageHost) {
+      continue;
+    }
+
+    if (!lastMessageHost) {
+      const messageList = messageHost.parentElement?.querySelectorAll?.('[cbe-message-id]');
+      lastMessageHost = messageList && messageList.length > 0
+        ? messageList[messageList.length - 1] as Element
+        : null;
+    }
+
+    if (!lastMessageHost || messageHost === lastMessageHost) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * 设置 MutationObserver 监听
  * @param chatArea 要监听的聊天区域元素
@@ -34,23 +77,7 @@ function setupMutationObserver(
 
   // 创建新的观察者
   const observer = new MutationObserver((mutations) => {
-    // 检查是否有实际的内容变化
-    let hasContentChange = false;
-
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        // 检查是否有新增或删除的消息节点
-        if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
-          hasContentChange = true;
-          break;
-        }
-      } else if (mutation.type === 'characterData') {
-        hasContentChange = true;
-        break;
-      }
-    }
-
-    if (hasContentChange && debouncedRefresh) {
+    if (hasRelevantMutation(mutations) && debouncedRefresh) {
       debouncedRefresh();
     }
   });

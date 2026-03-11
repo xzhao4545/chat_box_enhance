@@ -19,14 +19,14 @@
   $effect(() => {
     if (allExpanded !== undefined) {
       nodes.forEach((node) => {
-        expandedStates[node.text] = allExpanded;
+        expandedStates[node.id] = allExpanded;
       });
     }
   });
 
-  function toggleExpand(text: string, e: Event) {
+  function toggleExpand(nodeId: string, e: Event) {
     e.stopPropagation();
-    expandedStates[text] = !expandedStates[text];
+    expandedStates[nodeId] = !expandedStates[nodeId];
   }
 
   function scrollToElement(element: Element, e: Event) {
@@ -50,15 +50,15 @@
         {#if node.children.length > 0}
           <button
             class="toggle-btn"
-            onclick={(e) => toggleExpand(node.text, e)}
-            aria-label={expandedStates[node.text] ? '收起' : '展开'}
+            onclick={(e) => toggleExpand(node.id, e)}
+            aria-label={expandedStates[node.id] ? '收起' : '展开'}
           >
-            {expandedStates[node.text] ? '▼' : '▶'}
+            {expandedStates[node.id] ? '▼' : '▶'}
           </button>
         {/if}
       </div>
 
-      {#if node.children.length > 0 && expandedStates[node.text]}
+      {#if node.children.length > 0 && expandedStates[node.id]}
         <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} />
       {/if}
     </div>

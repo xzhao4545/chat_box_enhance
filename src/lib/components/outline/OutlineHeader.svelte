@@ -1,6 +1,7 @@
 <script lang="ts">
   import { themeStore } from "../../stores";
   import SettingsModal from "./SettingsModal.svelte";
+  import { debounce } from '../../utils';
 
   const TITLE = "对话大纲";
 
@@ -29,10 +30,13 @@
   let filterText = $state("");
   let useRegex = $state(false);
   let showSettings = $state(false);
+  const emitFilterChange = debounce((filter: string, regex: boolean) => {
+    onFilterChange(filter, regex);
+  }, 150);
 
   function handleFilterInput(e: Event) {
     filterText = (e.target as HTMLInputElement).value;
-    onFilterChange(filterText, useRegex);
+    emitFilterChange(filterText, useRegex);
   }
 
   function toggleRegex() {

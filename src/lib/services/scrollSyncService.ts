@@ -33,6 +33,8 @@ export class ScrollSyncService {
   private isBinding = false;
   private retryGeneration = 0;
   private autoRetryCount = 0;
+  private lastSyncScrollEnabled: boolean | null = null;
+  private lastVisibleIndex = -1;
 
   public setLastHighlightElement(element: Element | null | undefined): void {
     this.lastHighlightElement = element;
@@ -40,6 +42,12 @@ export class ScrollSyncService {
 
   constructor() {
     featuresStore.subscribe((features) => {
+      if (this.lastSyncScrollEnabled === features.syncScroll) {
+        return;
+      }
+
+      this.lastSyncScrollEnabled = features.syncScroll;
+
       if (features.syncScroll) {
         void this.bindScrollListenerWithRetry('sync-toggle', true);
       } else {
@@ -81,6 +89,8 @@ export class ScrollSyncService {
 
   public manualSync(): void {
     logger.info('手动同步大纲滚动');
+    this.lastHighlightElement = null;
+    this.lastVisibleIndex = -1;
     this.syncOutlineScroll();
   }
 
@@ -167,6 +177,7 @@ export class ScrollSyncService {
     this.parserConfig = null;
     this.currentHighlightedElement = null;
     this.lastHighlightElement = null;
+    this.lastVisibleIndex = -1;
     this.isBinding = false;
     this.retryGeneration += 1;
     this.autoRetryCount = 0;
@@ -423,33 +434,48 @@ export class ScrollSyncService {
       return -1;
     }
 
-    const containerTop = this.scrollContainer.getBoundingClientRect().top+10;
-    const messageElements = this.scrollContainer.querySelectorAll('[cbe-message-id]');
-
-    let visibleIndex = -1;
-
-    for (let i = 0; i < messageElements.length; i++) {
-      const rect = messageElements[i].getBoundingClientRect();
-
-      if (rect.top >= containerTop || rect.bottom > containerTop) {
-        const messageId = messageElements[i].getAttribute('cbe-message-id');
-        visibleIndex = this.findCacheIndexByMessageId(messageId);
-        break;
-      }
-    }
-
-    return visibleIndex;
-  }
-
-  private findCacheIndexByMessageId(messageId: string | null): number {
-    if (!messageId) {
+    const containerTop = this.scrollContainer.getBoundingClientRect().top + 10;
+    const cache = messageCacheManager.getCache();
+    if (cache.length === 0) {
+      this.lastVisibleIndex = -1;
       return -1;
     }
 
-    const cache = messageCacheManager.getCache();
-    for (let i = 0; i < cache.length; i++) {
-      if (cache[i].messageId === messageId) {
-        return i;
+    const nearIndex = this.findVisibleMessageIndexNear(cache, containerTop);
+    if (nearIndex !== -1) {
+      this.lastVisibleIndex = nearIndex;
+      return nearIndex;
+    }
+
+    const fallbackIndex = this.findVisibleMessageIndexFull(cache, containerTop);
+    this.lastVisibleIndex = fallbackIndex;
+    return fallbackIndex;
+  }
+
+  private findVisibleMessageIndexNear(cache: ReturnType<typeof messageCacheManager.getCache>, containerTop: number): number {
+    if (this.lastVisibleIndex < 0 || this.lastVisibleIndex >= cache.length) {
+      return -1;
+    }
+
+    const maxOffset = 5;
+    const start = Math.max(0, this.lastVisibleIndex - maxOffset);
+    const end = Math.min(cache.length - 1, this.lastVisibleIndex + maxOffset);
+
+    for (let index = start; index <= end; index++) {
+      const rect = cache[index].outlineItem.element.getBoundingClientRect();
+      if (rect.top >= containerTop || rect.bottom > containerTop) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
+  private findVisibleMessageIndexFull(cache: ReturnType<typeof messageCacheManager.getCache>, containerTop: number): number {
+    for (let index = 0; index < cache.length; index++) {
+      const rect = cache[index].outlineItem.element.getBoundingClientRect();
+      if (rect.top >= containerTop || rect.bottom > containerTop) {
+        return index;
       }
     }
 
@@ -459,7 +485,12 @@ export class ScrollSyncService {
   private scrollToOutlineItem(index: number): void {
     const outlineElement = messageCacheManager.getOutlineElementByIndex(index);
 
-    if (!outlineElement || !this.outlineContainer || this.lastHighlightElement === outlineElement) {
+    if (!outlineElement || !this.outlineContainer) {
+      return;
+    }
+
+    if (this.lastHighlightElement === outlineElement) {
+      this.updateStatus('ready', `滚动监听已成功绑定，最近同步到第 ${index + 1} 条消息`);
       return;
     }
 

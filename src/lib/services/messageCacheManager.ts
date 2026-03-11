@@ -1,26 +1,14 @@
 /**
  * 消息缓存管理器
- * 负责管理CachedMessage数组的缓存逻辑
+ * 负责管理 CachedMessage 数组及其索引
  */
 
 import type { CachedMessage, OutlineItem, ParserConfig } from '../types';
 import { MessageOwner } from '../types';
-import { generateMessageHash, createOutlineItem, generateUniqueId } from '../stores/messageCache';
+import { generateUniqueId } from '../stores/messageCache';
+import { buildMessageHash, createOutlineViewItem } from '../utils/outlineBuilder';
 import { logger } from './logger';
 
-
-/**
- * 缓存验证结果
- */
-interface CacheValidationResult {
-  isValid: boolean;
-  needsUpdate: boolean;
-  cachedMessage?: CachedMessage;
-}
-
-/**
- * 缓存变更检测结果
- */
 export interface CacheChanges {
   hasChanges: boolean;
   changedIndices: number[];
@@ -28,53 +16,49 @@ export interface CacheChanges {
   removedCount: number;
 }
 
-/**
- * 消息缓存管理器类
- */
+interface CacheRebuildOptions {
+  features: { showUserMessages: boolean; showAIMessages: boolean; textLength: number };
+}
+
 export class MessageCacheManager {
   private cache: CachedMessage[] = [];
+  private cacheByMessageId = new Map<string, CachedMessage>();
+  private cacheByOutlineId = new Map<string, CachedMessage>();
 
-  /**
-   * 获取当前缓存
-   */
   getCache(): CachedMessage[] {
     return this.cache;
   }
 
-  /**
-   * 设置缓存
-   */
   setCache(cache: CachedMessage[]): void {
     this.cache = cache;
+    this.rebuildIndexes();
   }
 
-  /**
-   * 清空缓存
-   */
   clearCache(): void {
     this.cache = [];
+    this.cacheByMessageId.clear();
+    this.cacheByOutlineId.clear();
   }
 
-  /**
-   * 获取缓存长度
-   */
   get length(): number {
     return this.cache.length;
   }
 
-  /**
-   * 获取指定索引的缓存项
-   */
   get(index: number): CachedMessage | undefined {
     return this.cache[index];
   }
 
-  /**
-   * 检查最后一条消息是否需要更新
-   * @param messageElements 消息元素列表
-   * @returns 是否需要更新整个列表，以及最后一条消息的更新信息
-   */
-  checkLastMessage(messageElements: HTMLCollection | Element[] | NodeListOf<Element>): {
+  ensureMessageId(messageElement: Element): string {
+    let messageId = messageElement.getAttribute('cbe-message-id');
+    if (!messageId) {
+      messageId = generateUniqueId();
+      messageElement.setAttribute('cbe-message-id', messageId);
+    }
+
+    return messageId;
+  }
+
+  checkLastMessage(messageElements: Element[]): {
     shouldRefreshAll: boolean;
     lastMessageNeedsUpdate: boolean;
     lastIndex: number;
@@ -86,311 +70,165 @@ export class MessageCacheManager {
     const lastIndex = messageElements.length - 1;
     const lastMessage = messageElements[lastIndex];
     const lastCached = this.cache[this.cache.length - 1];
+    const messageId = this.ensureMessageId(lastMessage);
 
-    // 获取消息元素的cbe-message-id属性
-    const messageId = lastMessage.getAttribute('cbe-message-id');
-
-    // 如果ID不一致，说明整个消息列表可能有变化，需要刷新全部
     if (messageId !== lastCached.messageId) {
-      logger.debug('最后一条消息ID不一致，需要刷新全部', {
-        cachedId: lastCached.messageId,
-        elementId: messageId
-      });
       return { shouldRefreshAll: true, lastMessageNeedsUpdate: true, lastIndex };
     }
 
-    // ID一致，检查Hash是否一致
-    const currentHash = generateMessageHash(lastIndex, lastMessage);
-    const hashConsistent = lastCached.messageHash === currentHash;
-
-    logger.debug('最后一条消息检查:', {
-      id: messageId,
-      hashConsistent,
-      cachedHash: lastCached.messageHash,
-      currentHash
-    });
-
+    const currentHash = buildMessageHash(lastIndex, lastMessage.textContent || '');
     return {
       shouldRefreshAll: false,
-      lastMessageNeedsUpdate: !hashConsistent,
+      lastMessageNeedsUpdate: currentHash !== lastCached.messageHash,
       lastIndex
     };
   }
 
-  /**
-   * 更新最后一条缓存
-   * @param messageElement 消息元素
-   * @param index 索引
-   * @param outlineItem 新的大纲项
-   * @param outlineElement 大纲DOM元素
-   */
   updateLastCache(
     messageElement: Element,
     index: number,
     outlineItem: OutlineItem,
-    outlineElement: Element
+    outlineElement: Element | null,
   ): void {
-    const messageHash = generateMessageHash(index, messageElement);
-    const messageId = messageElement.getAttribute('cbe-message-id') || generateUniqueId();
-
-    // 如果没有cbe-message-id，设置它
-    if (!messageElement.getAttribute('cbe-message-id')) {
-      messageElement.setAttribute('cbe-message-id', messageId);
-    }
-
+    const messageId = this.ensureMessageId(messageElement);
     const newCacheItem: CachedMessage = {
       messageId,
-      messageHash,
+      messageHash: buildMessageHash(index, messageElement.textContent || ''),
       textLength: messageElement.textContent?.length || 0,
       outlineElement,
       outlineItem,
       timestamp: Date.now()
     };
 
-    // 替换最后一条缓存
     this.cache[this.cache.length - 1] = newCacheItem;
-    logger.debug('更新最后一条缓存:', { index, messageId, messageHash });
+    this.cacheByMessageId.set(messageId, newCacheItem);
+    this.cacheByOutlineId.set(outlineItem.id, newCacheItem);
   }
 
-  /**
-   * 验证单个缓存项
-   * @param cachedMessage 缓存的消息
-   * @param messageElement 当前消息元素
-   * @param index 索引
-   * @returns 验证结果
-   */
-  validateCacheItem(
-    cachedMessage: CachedMessage,
-    messageElement: Element,
-    index: number
-  ): CacheValidationResult {
-    const messageId = messageElement.getAttribute('cbe-message-id');
-
-    // 检查ID是否一致
-    if (messageId !== cachedMessage.messageId) {
-      logger.debug(`索引 ${index} 的ID不一致，需要更新`, {
-        cachedId: cachedMessage.messageId,
-        elementId: messageId
-      });
-      return { isValid: false, needsUpdate: true };
-    }
-
-    // ID一致，检查Hash是否一致
-    const currentHash = generateMessageHash(index, messageElement);
-    if (currentHash !== cachedMessage.messageHash) {
-      logger.debug(`索引 ${index} 的Hash不一致，需要更新`, {
-        cachedHash: cachedMessage.messageHash,
-        currentHash
-      });
-      return { isValid: true, needsUpdate: true, cachedMessage };
-    }
-
-    // ID和Hash都一致，缓存有效
-    return { isValid: true, needsUpdate: false, cachedMessage };
-  }
-
-  /**
-   * 创建新的缓存项
-   * @param messageElement 消息元素
-   * @param index 索引
-   * @param messageType 消息类型
-   * @param textLength 文本长度限制
-   * @param outlineElement 大纲DOM元素
-   * @returns 新的缓存项
-   */
-  createCacheItem(
-    messageElement: Element,
-    index: number,
-    messageType: MessageOwner,
-    textLength: number,
-    outlineElement: Element
-  ): CachedMessage | null {
-    const outlineItem = createOutlineItem(messageElement, index, messageType, textLength);
-    if (!outlineItem) {
-      return null;
-    }
-
-    const messageHash = generateMessageHash(index, messageElement);
-    let messageId = messageElement.getAttribute('cbe-message-id');
-
-    // 如果没有cbe-message-id，生成并设置它
-    if (!messageId) {
-      messageId = generateUniqueId();
-      messageElement.setAttribute('cbe-message-id', messageId);
-    }
-
-    return {
-      messageId,
-      messageHash,
-      textLength: messageElement.textContent?.length || 0,
-      outlineElement,
-      outlineItem,
-      timestamp: Date.now()
-    };
-  }
-
-  /**
-   * 智能重建缓存 - 精确追踪变更
-   * @param messageElements 消息元素列表
-   * @param parserConfig 解析配置
-   * @param features 功能配置
-   * @returns 变更检测结果和生成的OutlineItem数组
-   */
-  smartRebuildCache(
-    messageListResult: HTMLCollection | Element[] | NodeListOf<Element>,
+  rebuildCache(
+    messageElements: Element[],
     parserConfig: ParserConfig,
-    features: { showUserMessages: boolean; showAIMessages: boolean; textLength: number }
+    options: CacheRebuildOptions,
   ): { changes: CacheChanges; outlineItems: OutlineItem[] } {
-    const newCache: CachedMessage[] = [];
+    const nextCache: CachedMessage[] = [];
     const outlineItems: OutlineItem[] = [];
     const changedIndices: number[] = [];
-    let messageIndex = 0;
 
-    // 转换为数组以便遍历
-    const messageElements = Array.from(messageListResult);
+    let displayIndex = 0;
 
-    // 快速路径：如果消息数量和缓存数量相同，且最后一条没变化，可能不需要全量更新
-    const lastCheck = this.checkLastMessage(messageElements);
-    if (!lastCheck.shouldRefreshAll && !lastCheck.lastMessageNeedsUpdate) {
-      logger.debug('Smart Cache: 没有检测到任何变化');
-      return {
-        changes: { hasChanges: false, changedIndices: [], addedCount: 0, removedCount: 0 },
-        outlineItems: this.cache.map(c => c.outlineItem)
-      };
-    }
-
-    // 遍历所有消息进行精确检测
-    for (let i = 0; i < messageElements.length; i++) {
-      const messageElement = messageElements[i];
+    for (let rawIndex = 0; rawIndex < messageElements.length; rawIndex++) {
+      const messageElement = messageElements[rawIndex];
       const messageType = parserConfig.determineMessageOwner(messageElement);
-
-      // 检查是否应该显示此消息
       const shouldShow =
-        (messageType === MessageOwner.User && features.showUserMessages) ||
-        (messageType === MessageOwner.Assistant && features.showAIMessages);
+        (messageType === MessageOwner.User && options.features.showUserMessages) ||
+        (messageType === MessageOwner.Assistant && options.features.showAIMessages);
 
       if (!shouldShow) {
         continue;
       }
 
-      // 尝试从旧缓存中查找
-      let cacheItem: CachedMessage | null = null;
-      let isChanged = false;
+      const messageId = this.ensureMessageId(messageElement);
+      const messageHash = buildMessageHash(rawIndex, messageElement.textContent || '');
+      const oldCached = this.cacheByMessageId.get(messageId);
 
-      // 先在相同位置检查
-      if (messageIndex < this.cache.length) {
-        const oldCached = this.cache[messageIndex];
-        const validation = this.validateCacheItem(oldCached, messageElement, i);
+      let nextCached: CachedMessage;
 
-        if (validation.isValid && !validation.needsUpdate) {
-          // 完全匹配，复用
-          cacheItem = oldCached;
-        } else if (validation.isValid && validation.needsUpdate) {
-          // ID匹配但内容变化，需要更新
-          cacheItem = this.createCacheItem(
-            messageElement,
-            messageIndex,
-            messageType,
-            features.textLength,
-            oldCached.outlineElement
-          );
-          isChanged = true;
-          changedIndices.push(messageIndex);
-          logger.debug(`Smart Cache: 索引 ${messageIndex} 内容已更新`);
+      if (oldCached && oldCached.messageHash === messageHash) {
+        nextCached = oldCached;
+        if (nextCached.outlineItem.index !== displayIndex) {
+          nextCached.outlineItem.index = displayIndex;
+          changedIndices.push(displayIndex);
         }
+        nextCached.outlineItem.element = messageElement;
+      } else {
+        const stableOutlineId = oldCached?.outlineItem.id || generateUniqueId();
+        const outlineItem = createOutlineViewItem({
+          id: stableOutlineId,
+          index: displayIndex,
+          type: messageType,
+          element: messageElement,
+          textLength: options.features.textLength
+        });
+
+        nextCached = {
+          messageId,
+          messageHash,
+          textLength: messageElement.textContent?.length || 0,
+          outlineElement: oldCached?.outlineElement || null,
+          outlineItem,
+          timestamp: Date.now()
+        };
+        changedIndices.push(displayIndex);
       }
 
-      // 如果没找到，在所有旧缓存中搜索（可能是位置变化）
-      if (!cacheItem) {
-        for (const oldCached of this.cache) {
-          const validation = this.validateCacheItem(oldCached, messageElement, i);
-          if (validation.isValid && !validation.needsUpdate) {
-            cacheItem = oldCached;
-            break;
-          }
-        }
-      }
-
-      // 还是没找到，创建新的
-      if (!cacheItem) {
-        cacheItem = this.createCacheItem(
-          messageElement,
-          messageIndex,
-          messageType,
-          features.textLength,
-          null as unknown as Element
-        );
-        isChanged = true;
-        changedIndices.push(messageIndex);
-        logger.debug(`Smart Cache: 索引 ${messageIndex} 新建缓存`);
-      }
-
-      if (cacheItem) {
-        // 确保索引和ID正确
-        if (cacheItem.outlineItem.index !== messageIndex) {
-          cacheItem.outlineItem.index = messageIndex;
-          cacheItem.outlineItem.id = generateUniqueId();
-          isChanged = true;
-        }
-
-        newCache.push(cacheItem);
-        outlineItems.push(cacheItem.outlineItem);
-        messageIndex++;
-      }
+      nextCache.push(nextCached);
+      outlineItems.push(nextCached.outlineItem);
+      displayIndex += 1;
     }
 
-    // 计算变更统计
-    const addedCount = Math.max(0, newCache.length - this.cache.length);
-    const removedCount = Math.max(0, this.cache.length - newCache.length);
+    const addedCount = Math.max(0, nextCache.length - this.cache.length);
+    const removedCount = Math.max(0, this.cache.length - nextCache.length);
+    const hasChanges =
+      changedIndices.length > 0 ||
+      addedCount > 0 ||
+      removedCount > 0 ||
+      nextCache.length !== this.cache.length;
 
-    // 更新缓存
-    this.cache = newCache;
+    this.cache = nextCache;
+    this.rebuildIndexes();
 
     const changes: CacheChanges = {
-      hasChanges: changedIndices.length > 0 || addedCount > 0 || removedCount > 0,
-      changedIndices,
+      hasChanges,
+      changedIndices: [...new Set(changedIndices)],
       addedCount,
       removedCount
     };
 
-    logger.debug('Smart Cache 重建完成:', changes);
+    logger.debug('Cache 重建完成:', changes);
     return { changes, outlineItems };
   }
 
-  /**
-   * 更新大纲元素的引用
-   * @param outlineItemId 大纲项ID
-   * @param outlineElement 大纲DOM元素
-   */
   updateOutlineElement(outlineItemId: string, outlineElement: Element): void {
-    const cachedItem = this.cache.find(c => c.outlineItem.id === outlineItemId);
-    if (cachedItem) {
-      cachedItem.outlineElement = outlineElement;
+    const cachedItem = this.cacheByOutlineId.get(outlineItemId);
+    if (!cachedItem || cachedItem.outlineElement === outlineElement) {
+      return;
     }
+
+    cachedItem.outlineElement = outlineElement;
   }
 
-  /**
-   * 根据消息索引获取对应的大纲元素
-   * @param messageIndex 消息索引
-   * @returns 大纲DOM元素或undefined
-   */
   getOutlineElementByIndex(messageIndex: number): Element | undefined {
     return this.cache[messageIndex]?.outlineElement;
   }
 
-  /**
-   * 滚动大纲到指定消息位置
-   * @param messageIndex 消息索引
-   */
+  getCacheIndexByMessageId(messageId: string | null): number {
+    if (!messageId) {
+      return -1;
+    }
+
+    for (let index = 0; index < this.cache.length; index++) {
+      if (this.cache[index].messageId === messageId) {
+        return index;
+      }
+    }
+
+    return -1;
+  }
+
   scrollOutlineToMessage(messageIndex: number): void {
     const outlineElement = this.getOutlineElementByIndex(messageIndex);
-    if (outlineElement) {
-      outlineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    outlineElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  private rebuildIndexes(): void {
+    this.cacheByMessageId.clear();
+    this.cacheByOutlineId.clear();
+
+    for (const item of this.cache) {
+      this.cacheByMessageId.set(item.messageId, item);
+      this.cacheByOutlineId.set(item.outlineItem.id, item);
     }
   }
 }
 
-/**
- * 全局缓存管理器实例
- */
 export const messageCacheManager = new MessageCacheManager();
