@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.1.2] 2026-03-11
+
+- 新增 `src/lib/services/outlineRefreshService.ts`，将大纲刷新流程从兼容层中拆分出来
+- 新增 `src/lib/services/messageSourceService.ts`，统一负责 chatArea 缓存、消息采集与消息 ID 补齐
+- 收口大纲构建逻辑到 `src/lib/utils/outlineBuilder.ts`
+- 重构 `messageCacheManager`，引入基于 `messageId` / `outlineId` 的索引化缓存
+- 优化搜索逻辑，改为使用预构建 `searchText`，并为输入增加防抖与正则容错
+- 优化 `MutationObserver` 触发策略，减少流式输出过程中的无效刷新
+- 重构滚动同步逻辑，新增锚点式定位能力，支持消息节点与树形标题节点的统一跟随
+- 修复手动同步无效、自动跟随误跳到末尾、点击节点后列表重复自滚动等问题
+
 ## [0.1.1] 2026-03-11
 
 - 重构大纲运行时架构：新增 `src/lib/services/outlineRuntimeService.ts`

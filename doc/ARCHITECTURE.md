@@ -15,10 +15,12 @@
 | 服务 | 职责 |
 |------|------|
 | `outlineRuntimeService.ts` | 统一编排大纲挂载、初始化刷新、监听注册、销毁清理 |
-| `outline.ts` | 负责大纲数据生成、刷新逻辑、缓存驱动更新 |
+| `outlineRefreshService.ts` | 负责大纲刷新主流程：消息采集、缓存重建、store 更新、刷新后同步 |
+| `outline.ts` | 对外兼容层，继续导出 `outlineService` |
+| `messageSourceService.ts` | 统一负责 chatArea 缓存、消息列表采集与 `cbe-message-id` 补齐 |
 | `observer.ts` | 封装 `MutationObserver`，监听聊天 DOM 变化 |
-| `messageCacheManager.ts` | 消息缓存管理、增量更新判断、缓存重建 |
-| `scrollSyncService.ts` | 大纲与聊天区域的滚动同步 |
+| `messageCacheManager.ts` | 消息缓存管理、索引化复用、DOM 引用登记 |
+| `scrollSyncService.ts` | 大纲与聊天区域的滚动同步，负责锚点构建、高亮与跟随 |
 | `logger.ts` | 统一日志输出与日志级别控制 |
 
 ### 状态层（`src/lib/stores/`）
@@ -74,15 +76,22 @@ App.svelte
 - `outlineRuntimeService`
   - 作为大纲运行时统一入口
   - 负责串联挂载、首次刷新、动态监听、清理销毁
-- `outlineService`
-  - 负责大纲数据本身的刷新与强制刷新
+- `outlineRefreshService`
+  - 负责大纲刷新主流程与强制刷新
+  - 协调 `messageSourceService`、`messageCacheManager` 与 `scrollSyncService`
+- `messageSourceService`
+  - 负责采集消息元素并补齐稳定消息 ID
 - `observerService`
   - 负责 DOM 变化监听，不直接参与 UI 挂载
 - `scrollSyncService`
   - 负责滚动同步与高亮逻辑
+  - 负责消息锚点与标题锚点构建、位置刷新与自动跟随
+
+- `messageCacheManager`
+  - 负责缓存项增量判断、索引化重建与 DOM 引用缓存
 
 ## 说明
 
-- 当前已将“刷新大纲内容”“挂载监听”“动态更新”统一收口到 `outlineRuntimeService`
-- `outline.ts` 与 `observer.ts` 仍保留为内部能力模块，对外优先通过 service 对象调用
-
+- 当前已形成“运行时编排 → 消息采集 → 大纲刷新 → 滚动同步”的分层链路
+- `outline.ts` 作为兼容层保留，对外优先通过 service 对象调用
+- `scrollSyncService` 当前采用“锚点式定位 + 可见性观察/扫描回退”的混合策略，支持标题树节点自动跟随
