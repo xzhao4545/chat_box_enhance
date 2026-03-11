@@ -55,6 +55,7 @@ function refreshOutlineItems(parserConfig: ParserConfig): void {
   if (currentMessageCount === 0) {
     messageCacheManager.clearCache();
     outlineStore.set([]);
+    scrollSyncService.schedulePostRefreshCheck();
     return;
   }
 
@@ -104,6 +105,7 @@ function refreshOutlineItems(parserConfig: ParserConfig): void {
         const allItems = messageCacheManager.getCache().map(c => c.outlineItem);
         outlineStore.set(allItems);
         logger.debug('已更新最后一条消息到大纲');
+        scrollSyncService.schedulePostRefreshCheck();
       }
     }
     return;
@@ -121,8 +123,10 @@ function refreshOutlineItems(parserConfig: ParserConfig): void {
   if (result.changes.hasChanges) {
     outlineStore.set(result.outlineItems);
     logger.info('大纲刷新完成，共', result.outlineItems.length, '项，变更:', result.changes);
+    scrollSyncService.schedulePostRefreshCheck();
   } else {
     logger.debug('缓存完全命中，跳过store更新');
+    scrollSyncService.schedulePostRefreshCheck();
   }
 }
 

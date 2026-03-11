@@ -5,6 +5,8 @@
   import OutlineHeader from './OutlineHeader.svelte';
   import OutlineList from './OutlineList.svelte';
   import DraggableToggleButton from './DraggableToggleButton.svelte';
+  import PanelNoticeStack from './PanelNoticeStack.svelte';
+  import ServiceStatusBar from './ServiceStatusBar.svelte';
   import { scrollSyncService } from '../../services/scrollSyncService';
 
   interface Props {
@@ -83,7 +85,9 @@
       {allExpanded}
       {currentTheme}
     />
+    <PanelNoticeStack />
     <OutlineList {filterText} {useRegex} />
+    <ServiceStatusBar />
   </div>
 {:else}
   <DraggableToggleButton onClick={toggleVisibility} />
@@ -102,6 +106,8 @@
     z-index: 9999;
     display: flex;
     flex-direction: column;
+    position: relative;
+    overflow: hidden;
   }
 
   .outline-fixed-right {
