@@ -18,6 +18,9 @@ export const deepseekConfig: ParserConfig = {
   // 根据传入的监视根节点获取其对应的对话历史列表
   getMessageList: function (root) {
     const items=root.querySelectorAll('.ds-virtual-list-visible-items')[0];
+    if(items===undefined){
+      return []
+    }
     return items.children;
   },
   // 判断是否为用户消息，传入参数为每一个消息对话框
