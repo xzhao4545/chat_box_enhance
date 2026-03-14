@@ -10,19 +10,15 @@ export const deepseekConfig: ParserConfig = {
   selectChatArea: function () {
     const ele = document.querySelectorAll('.ds-scroll-area')[2];
     if ((ele as Element).tagName == "TEXTAREA") {
-      return (ele as Element).parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement;
+      return (ele as Element).parentElement?.parentElement?.parentElement?.parentElement;
     } else {
-      return (ele as Element).parentElement?.parentElement?.parentElement;
+      return ele;
     }
   },
   // 根据传入的监视根节点获取其对应的对话历史列表
   getMessageList: function (root) {
-    let sc = root.querySelector('.ds-scroll-area');
-    if (!sc) return null;
-    if (!sc.firstChild || (sc.firstChild as Element).tagName == "TEXTAREA") {
-      return null;
-    }
-    return (sc.firstChild as Element).children;
+    const items=root.querySelectorAll('.ds-virtual-list-visible-items')[0];
+    return items.children;
   },
   // 判断是否为用户消息，传入参数为每一个消息对话框
   determineMessageOwner: function (messageEle) {
@@ -37,6 +33,6 @@ export const deepseekConfig: ParserConfig = {
     return b1 || null;
   },
   getScrollContainer: function(chatArea:Element): Element | null{
-    return chatArea.querySelector('.ds-scroll-area')
+    return chatArea.querySelector('.ds-virtual-list');
   }
 };

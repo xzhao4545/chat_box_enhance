@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.1.3] 2026-03-14
+
+- 适配DeepSeek新的页面结构
+
 ## [0.1.2] 2026-03-11
 
 - 新增 `src/lib/services/outlineRefreshService.ts`，将大纲刷新流程从兼容层中拆分出来
