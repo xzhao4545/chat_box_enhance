@@ -142,13 +142,16 @@
 
   // 处理书签导航
   async function handleBookmarkNavigate(bookmark: Bookmark) {
+    // 先切换到大纲视图，确保大纲元素可见
+    viewMode = 'outline';
+    
+    // 等待视图切换渲染完成
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     const result = await bookmarkNavigationService.navigateToBookmark(bookmark);
     
     if (result.needsRedirect && result.redirectUrl) {
       bookmarkNavigationService.executeRedirect(result.redirectUrl);
-    } else if (result.success) {
-      // 切换到大纲视图
-      viewMode = 'outline';
     }
   }
 

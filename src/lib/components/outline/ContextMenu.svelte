@@ -63,16 +63,18 @@
       }
     };
 
-    // 延迟添加监听器，避免立即触发
+    // 延迟添加监听器，避免当前事件立即触发
     const timer = setTimeout(() => {
       document.addEventListener('click', handleClickOutside);
       document.addEventListener('contextmenu', handleClickOutside);
-    }, 0);
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
       document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('contextmenu', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   });
 </script>
