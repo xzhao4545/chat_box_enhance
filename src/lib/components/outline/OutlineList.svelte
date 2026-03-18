@@ -10,7 +10,6 @@
     filterText?: string;
     useRegex?: boolean;
     onContextMenu?: (e: MouseEvent, context: {
-      outlineItemId: string;
       outlineItemType: 'message' | 'header';
       messageIndex: number;
       messageText: string;

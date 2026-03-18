@@ -121,14 +121,12 @@
 
   // 处理大纲项右键菜单
   function handleContextMenu(e: MouseEvent, context: {
-    outlineItemId: string;
     outlineItemType: 'message' | 'header';
     messageIndex: number;
     messageText: string;
     messageHash: string;
   }) {
     const fullContext = buildOutlineItemContext(
-      context.outlineItemId,
       context.outlineItemType,
       context.messageIndex,
       context.messageText,
