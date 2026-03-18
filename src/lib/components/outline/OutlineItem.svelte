@@ -4,16 +4,32 @@
   import { highlightElement } from '../../utils';
   import { messageCacheManager } from '../../services/messageCacheManager';
   import { scrollSyncService } from '../../services/scrollSyncService';
+  import { bookmarksStore } from '../../stores';
 
   interface Props {
     item: OutlineItemType;
     allExpanded?: boolean;
+    onContextMenu?: (e: MouseEvent, context: {
+      outlineItemId: string;
+      outlineItemType: 'message' | 'header';
+      messageIndex: number;
+      messageText: string;
+      messageHash: string;
+    }) => void;
   }
 
-  let { item, allExpanded = true }: Props = $props();
+  let { item, allExpanded = true, onContextMenu }: Props = $props();
 
   let isExpanded = $state(true);
   let containerElement: HTMLDivElement | undefined = $state();
+
+  // 是否有书签
+  let hasBookmark = $state(false);
+
+  // 检查是否有书签
+  $effect(() => {
+    hasBookmark = bookmarksStore.hasBookmarkForOutlineItem(item.id);
+  });
 
   function scrollToElement() {
     scrollSyncService.focusOutlineElement(containerElement);
@@ -32,6 +48,19 @@
     isExpanded = !isExpanded;
   }
 
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    if (onContextMenu) {
+      onContextMenu(e, {
+        outlineItemId: item.id,
+        outlineItemType: 'message',
+        messageIndex: item.index,
+        messageText: item.searchText,
+        messageHash: item.id // 使用 id 作为 hash 的简化版本
+      });
+    }
+  }
+
   $effect(() => {
     isExpanded = allExpanded;
   });
@@ -47,15 +76,36 @@
 
 {#if item.type === MessageOwner.User}
   <!-- 用户消息项 -->
-  <div class="outline-user-item" bind:this={containerElement} onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
+  <div 
+    class="outline-user-item" 
+    class:has-bookmark={hasBookmark}
+    bind:this={containerElement} 
+    onclick={scrollToElement} 
+    onkeydown={handleKeydown} 
+    oncontextmenu={handleContextMenu}
+    role="button" 
+    tabindex="0"
+  >
+    {#if hasBookmark}<span class="bookmark-indicator">🔖</span>{/if}
     👤 {item.index+1}. {item.text}
   </div>
 {:else if item.type === MessageOwner.Assistant}
   {#if item.headers && item.headers.length > 0}
     <!-- AI消息容器（带标题） -->
     <div class="outline-ai-container" bind:this={containerElement}>
-      <div class="outline-ai-header" onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
-        <span class="header-text">🤖 {item.index+1}. {item.text}</span>
+      <div 
+        class="outline-ai-header" 
+        class:has-bookmark={hasBookmark}
+        onclick={scrollToElement} 
+        onkeydown={handleKeydown} 
+        oncontextmenu={handleContextMenu}
+        role="button" 
+        tabindex="0"
+      >
+        <span class="header-text">
+          {#if hasBookmark}<span class="bookmark-indicator">🔖</span>{/if}
+          🤖 {item.index+1}. {item.text}
+        </span>
         <button
           class="toggle-btn"
           onclick={toggleExpand}
@@ -66,13 +116,23 @@
       </div>
       {#if isExpanded}
         <div class="outline-ai-content">
-          <HeaderTree nodes={item.headers} allExpanded={allExpanded} />
+          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} />
         </div>
       {/if}
     </div>
   {:else}
     <!-- AI消息简单项 -->
-    <div class="outline-ai-item" bind:this={containerElement} onclick={scrollToElement} onkeydown={handleKeydown} role="button" tabindex="0">
+    <div 
+      class="outline-ai-item" 
+      class:has-bookmark={hasBookmark}
+      bind:this={containerElement} 
+      onclick={scrollToElement} 
+      onkeydown={handleKeydown} 
+      oncontextmenu={handleContextMenu}
+      role="button" 
+      tabindex="0"
+    >
+      {#if hasBookmark}<span class="bookmark-indicator">🔖</span>{/if}
       🤖 {item.index}. {item.text}
     </div>
   {/if}
@@ -89,10 +149,20 @@
     transition: background-color 0.2s;
     color: var(--outline-text);
     font-size: 14px;
+    position: relative;
   }
 
   .outline-user-item:hover {
     background: var(--outline-user-hover-bg);
+  }
+
+  .has-bookmark {
+    border-left-color: var(--outline-bookmark-border, #ffc107);
+  }
+
+  .bookmark-indicator {
+    margin-right: 4px;
+    font-size: 12px;
   }
 
   .outline-ai-container {
@@ -116,6 +186,10 @@
 
   .outline-ai-header:hover {
     background: var(--outline-ai-hover-bg);
+  }
+
+  .outline-ai-header.has-bookmark {
+    border-left-color: var(--outline-bookmark-border, #ffc107);
   }
 
   .header-text {
@@ -143,6 +217,10 @@
 
   .outline-ai-item:hover {
     background: var(--outline-ai-hover-bg);
+  }
+
+  .outline-ai-item.has-bookmark {
+    border-left-color: var(--outline-bookmark-border, #ffc107);
   }
 
   .toggle-btn {

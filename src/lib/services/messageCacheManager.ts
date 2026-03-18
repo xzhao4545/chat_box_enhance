@@ -198,7 +198,8 @@ export class MessageCacheManager {
   }
 
   getOutlineElementByIndex(messageIndex: number): Element | undefined {
-    return this.cache[messageIndex]?.outlineElement;
+    const element = this.cache[messageIndex]?.outlineElement;
+    return element ?? undefined;
   }
 
   getCacheIndexByMessageId(messageId: string | null): number {

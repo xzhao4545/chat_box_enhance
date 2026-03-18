@@ -26,4 +26,28 @@ export interface ParserConfig {
   getScrollContainer?: (chatArea: Element) => Element | null;
   /** 超时时间（可选） */
   timeout?: number;
+  
+  // ===== 书签功能相关方法 =====
+  
+  /** 
+   * 获取当前会话ID
+   * 用于区分不同会话的书签
+   * @returns 会话ID，无会话ID时返回 null
+   */
+  getConversationId?: () => string | null;
+  
+  /** 
+   * 获取当前会话名称
+   * 用于在书签列表中展示会话名称
+   * @returns 会话名称，无法获取时返回 null
+   */
+  getConversationName?: () => string | null;
+  
+  /** 
+   * 构建会话URL
+   * 用于跨会话书签跳转
+   * @param conversationId 会话ID
+   * @returns 会话完整URL
+   */
+  buildConversationUrl?: (conversationId: string) => string | null;
 }

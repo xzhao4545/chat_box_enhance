@@ -37,5 +37,26 @@ export const kimiConfig: ParserConfig = {
   getScrollContainer(chatArea) {
     return chatArea.querySelector('.chat-detail-main');
   },
-  timeout: 5000
+  timeout: 5000,
+  
+  // ===== 书签功能相关 =====
+  
+  // Kimi URL: /chat/{conversation-id}
+  getConversationId: function () {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'chat') {
+      return parts[1];
+    }
+    return null;
+  },
+  
+  getConversationName: function () {
+    const titleElement = document.querySelector('.chat-title, [class*="title"]');
+    return titleElement?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function (conversationId: string) {
+    return `/chat/${conversationId}`;
+  }
 };

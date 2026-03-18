@@ -36,4 +36,20 @@ export const grokConfig: ParserConfig = {
   getScrollContainer(chatArea) {
     return chatArea.querySelector('.scrollbar-gutter-stable')
   },
+  
+  // ===== 书签功能相关 =====
+  
+  // Grok 无明确会话ID
+  getConversationId: function () {
+    return null;
+  },
+  
+  getConversationName: function () {
+    const titleElement = document.querySelector('h1, [class*="title"]');
+    return titleElement?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function () {
+    return '/';
+  }
 };

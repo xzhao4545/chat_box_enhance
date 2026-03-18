@@ -39,5 +39,21 @@ export const tongyiConfig: ParserConfig = {
     const tongyiContainer = document.querySelectorAll('.mainContent-GBAlug')[1]
       .parentElement!!.parentElement;
     return tongyiContainer;
+  },
+  
+  // ===== 书签功能相关 =====
+  
+  // 通义千问无明确会话ID
+  getConversationId: function () {
+    return null;
+  },
+  
+  getConversationName: function () {
+    const titleElement = document.querySelector('[class*="chat-title"], [class*="session-title"]');
+    return titleElement?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function () {
+    return '/';
   }
 };

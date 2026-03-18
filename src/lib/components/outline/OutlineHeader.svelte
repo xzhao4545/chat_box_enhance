@@ -14,6 +14,8 @@
     allExpanded: boolean;
     currentTheme: "light" | "dark";
     onFilterChange: (filter: string, useRegex: boolean) => void;
+    viewMode: 'outline' | 'bookmark';
+    onTabChange: (tab: 'outline' | 'bookmark') => void;
   }
 
   let {
@@ -25,6 +27,8 @@
     allExpanded,
     currentTheme,
     onFilterChange,
+    viewMode,
+    onTabChange,
   }: Props = $props();
 
   let filterText = $state("");
@@ -67,57 +71,86 @@
       </button>
     </div>
   </div>
+  
+  <!-- 标签页切换 -->
+  <div class="tab-container">
+    <button
+      class="tab-btn"
+      class:active={viewMode === 'outline'}
+      onclick={() => onTabChange('outline')}
+    >
+      📋 大纲
+    </button>
+    <button
+      class="tab-btn"
+      class:active={viewMode === 'bookmark'}
+      onclick={() => onTabChange('bookmark')}
+    >
+      📚 书签
+    </button>
+  </div>
+  
   <div class="controls-row">
-    <button
-      class="outline-btn"
-      onclick={onRefresh}
-      title="强制刷新大纲"
-      aria-label="强制刷新大纲"
-    >
-      🔄
-    </button>
-    <button
-      class="outline-btn"
-      onclick={onSync}
-      title="同步大纲位置"
-      aria-label="同步大纲位置"
-    >
-      📍
-    </button>
-    <button
-      class="outline-btn"
-      onclick={onToggleAll}
-      title={allExpanded ? "收起所有节点" : "展开所有节点"}
-      aria-label={allExpanded ? "收起所有节点" : "展开所有节点"}
-    >
-      {allExpanded ? "📂" : "📁"}
-    </button>
-    <button
-      class="outline-btn"
-      onclick={onToggleTheme}
-      title="切换主题"
-      aria-label="切换主题"
-    >
-      {currentTheme === "light" ? "🌙" : "☀️"}
-    </button>
+    <!-- 左侧：大纲专有按钮 -->
+    <div class="controls-left">
+      {#if viewMode === 'outline'}
+        <button
+          class="outline-btn"
+          onclick={onRefresh}
+          title="强制刷新大纲"
+          aria-label="强制刷新大纲"
+        >
+          🔄
+        </button>
+        <button
+          class="outline-btn"
+          onclick={onSync}
+          title="同步大纲位置"
+          aria-label="同步大纲位置"
+        >
+          📍
+        </button>
+        <button
+          class="outline-btn"
+          onclick={onToggleAll}
+          title={allExpanded ? "收起所有节点" : "展开所有节点"}
+          aria-label={allExpanded ? "收起所有节点" : "展开所有节点"}
+        >
+          {allExpanded ? "📂" : "📁"}
+        </button>
+      {/if}
+    </div>
+    <!-- 右侧：通用按钮 -->
+    <div class="controls-right">
+      <button
+        class="outline-btn"
+        onclick={onToggleTheme}
+        title="切换主题"
+        aria-label="切换主题"
+      >
+        {currentTheme === "light" ? "🌙" : "☀️"}
+      </button>
+    </div>
   </div>
-  <div class="filter-row">
-    <input
-      type="text"
-      class="filter-input"
-      placeholder="筛选..."
-      value={filterText}
-      oninput={handleFilterInput}
-    />
-    <button
-      class="outline-btn regex-btn"
-      class:active={useRegex}
-      onclick={toggleRegex}
-      title={useRegex ? "关闭正则表达式" : "启用正则表达式"}
-    >
-      .*
-    </button>
-  </div>
+  {#if viewMode === 'outline'}
+    <div class="filter-row">
+      <input
+        type="text"
+        class="filter-input"
+        placeholder="筛选..."
+        value={filterText}
+        oninput={handleFilterInput}
+      />
+      <button
+        class="outline-btn regex-btn"
+        class:active={useRegex}
+        onclick={toggleRegex}
+        title={useRegex ? "关闭正则表达式" : "启用正则表达式"}
+      >
+        .*
+      </button>
+    </div>
+  {/if}
 </header>
 
 {#if showSettings}
@@ -128,7 +161,7 @@
   .chat-outline-header {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     padding: 10px 15px;
     border-bottom: 1px solid var(--outline-border);
     background: var(--outline-header-bg);
@@ -154,11 +187,56 @@
     align-items: center;
   }
 
+  .tab-container {
+    display: flex;
+    gap: 2px;
+    background: var(--outline-border);
+    border-radius: 4px;
+    padding: 2px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+    color: var(--outline-text);
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .tab-btn.active {
+    background: var(--outline-bg);
+    font-weight: 500;
+  }
+
+  .tab-btn:hover:not(.active) {
+    opacity: 0.8;
+  }
+
   .controls-row {
     display: flex;
     gap: 8px;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+  }
+
+  .controls-left {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .controls-right {
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
 
   .filter-row {
@@ -190,6 +268,11 @@
   .outline-btn:hover {
     background: var(--outline-border);
     transform: scale(1.05);
+  }
+
+  .outline-btn.active {
+    background: var(--outline-border);
+    font-weight: bold;
   }
 
   .regex-btn.active {

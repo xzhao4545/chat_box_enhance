@@ -37,4 +37,25 @@ export const qwenConfig: ParserConfig = {
   getScrollContainer(chatArea) {
     return chatArea.parentElement;
   },
+  
+  // ===== 书签功能相关 =====
+  
+  // Qwen URL: /chat/{conversation-id}
+  getConversationId: function () {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'chat') {
+      return parts[1];
+    }
+    return null;
+  },
+  
+  getConversationName: function () {
+    const titleElement = document.querySelector('[class*="chat-title"], h1');
+    return titleElement?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function (conversationId: string) {
+    return `/chat/${conversationId}`;
+  }
 };

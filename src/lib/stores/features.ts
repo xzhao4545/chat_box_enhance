@@ -17,7 +17,8 @@ const defaultFeatures: FeaturesConfig = {
   textLength: 50,
   debouncedInterval: 500,
   syncScroll: true,
-  logLevel: 'info'
+  logLevel: 'info',
+  bookmarkGetTextLength: 20
 };
 
 const STORAGE_KEY = 'chat-outline-features';

@@ -25,71 +25,92 @@
       <button class="close-btn" onclick={onClose}>✕</button>
     </div>
     <div class="modal-body">
-      <label>
-        <input
-          type="checkbox"
-          checked={features.autoExpand}
-          onchange={(e) => updateFeature('autoExpand', e.currentTarget.checked)}
-        />
-        自动展开节点
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={features.showUserMessages}
-          onchange={(e) => updateFeature('showUserMessages', e.currentTarget.checked)}
-        />
-        显示用户消息
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={features.showAIMessages}
-          onchange={(e) => updateFeature('showAIMessages', e.currentTarget.checked)}
-        />
-        显示AI回复
-      </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={features.syncScroll}
-          onchange={(e) => updateFeature('syncScroll', e.currentTarget.checked)}
-        />
-        同步滚动
-      </label>
-      <label>
-        文本长度限制
-        <input
-          type="number"
-          min="10"
-          max="200"
-          value={features.textLength}
-          onchange={(e) => updateFeature('textLength', parseInt(e.currentTarget.value))}
-        />
-      </label>
-      <label>
-        更新间隔 (ms)
-        <input
-          type="number"
-          min="100"
-          max="2000"
-          step="100"
-          value={features.debouncedInterval}
-          onchange={(e) => updateFeature('debouncedInterval', parseInt(e.currentTarget.value))}
-        />
-      </label>
-      <label>
-        日志级别
-        <select
-          value={features.logLevel}
-          onchange={(e) => updateFeature('logLevel', e.currentTarget.value)}
-        >
-          <option value="debug">Debug</option>
-          <option value="info">Info</option>
-          <option value="warn">Warn</option>
-          <option value="error">Error</option>
-        </select>
-      </label>
+      <div class="setting-section">
+        <h4 class="section-title">显示设置</h4>
+        <label>
+          <input
+            type="checkbox"
+            checked={features.autoExpand}
+            onchange={(e) => updateFeature('autoExpand', e.currentTarget.checked)}
+          />
+          自动展开节点
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={features.showUserMessages}
+            onchange={(e) => updateFeature('showUserMessages', e.currentTarget.checked)}
+          />
+          显示用户消息
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={features.showAIMessages}
+            onchange={(e) => updateFeature('showAIMessages', e.currentTarget.checked)}
+          />
+          显示AI回复
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={features.syncScroll}
+            onchange={(e) => updateFeature('syncScroll', e.currentTarget.checked)}
+          />
+          同步滚动
+        </label>
+      </div>
+      
+      <div class="setting-section">
+        <h4 class="section-title">书签设置</h4>
+        <label>
+          书签默认名称长度
+          <input
+            type="number"
+            min="10"
+            max="100"
+            value={features.bookmarkGetTextLength}
+            onchange={(e) => updateFeature('bookmarkGetTextLength', parseInt(e.currentTarget.value))}
+          />
+        </label>
+      </div>
+      
+      <div class="setting-section">
+        <h4 class="section-title">高级设置</h4>
+        <label>
+          文本长度限制
+          <input
+            type="number"
+            min="10"
+            max="200"
+            value={features.textLength}
+            onchange={(e) => updateFeature('textLength', parseInt(e.currentTarget.value))}
+          />
+        </label>
+        <label>
+          更新间隔 (ms)
+          <input
+            type="number"
+            min="100"
+            max="2000"
+            step="100"
+            value={features.debouncedInterval}
+            onchange={(e) => updateFeature('debouncedInterval', parseInt(e.currentTarget.value))}
+          />
+        </label>
+        <label>
+          日志级别
+          <select
+            value={features.logLevel}
+            onchange={(e) => updateFeature('logLevel', e.currentTarget.value)}
+          >
+            <option value="debug">Debug</option>
+            <option value="info">Info</option>
+            <option value="warn">Warn</option>
+            <option value="error">Error</option>
+          </select>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -114,6 +135,8 @@
     border-radius: 8px;
     width: 400px;
     max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
 
@@ -147,10 +170,26 @@
   }
 
   .modal-body {
-    padding: 20px;
+    padding: 15px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 16px;
+  }
+
+  .setting-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .section-title {
+    margin: 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--outline-border);
+    color: var(--outline-text);
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.8;
   }
 
   label {

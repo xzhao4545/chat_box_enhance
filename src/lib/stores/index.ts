@@ -16,3 +16,4 @@ export {
   removePanelNotice,
   clearPanelNotice
 } from './panelStatus';
+export { bookmarksStore, getBookmarksStats } from './bookmarksStore';

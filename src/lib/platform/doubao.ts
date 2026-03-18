@@ -43,4 +43,24 @@ export const doubaoConfig: ParserConfig = {
   getScrollContainer(chatArea) {
     return chatArea.querySelector('[class^="scrollable"]');
   },
+  
+  // ===== 书签功能相关 =====
+  
+  // 豆包无明确会话ID，使用 hash 或默认值
+  getConversationId: function () {
+    const hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      return hash.substring(1);
+    }
+    return null;
+  },
+  
+  getConversationName: function () {
+    const titleElement = document.querySelector('[class*="chat-title"], [class*="conversation-title"]');
+    return titleElement?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function (conversationId: string) {
+    return `/#${conversationId}`;
+  }
 };

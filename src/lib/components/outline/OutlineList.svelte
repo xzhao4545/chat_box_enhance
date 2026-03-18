@@ -9,9 +9,16 @@
   interface Props {
     filterText?: string;
     useRegex?: boolean;
+    onContextMenu?: (e: MouseEvent, context: {
+      outlineItemId: string;
+      outlineItemType: 'message' | 'header';
+      messageIndex: number;
+      messageText: string;
+      messageHash: string;
+    }) => void;
   }
 
-  let { filterText = '', useRegex = false }: Props = $props();
+  let { filterText = '', useRegex = false, onContextMenu }: Props = $props();
 
   let items = $state<OutlineItemType[]>([]);
   let allExpanded = $state(true);
@@ -60,7 +67,7 @@
 
 <div class="outline-content" id="outline-content" bind:this={outlineContainer}>
   {#each showItems as item (item.id)}
-    <OutlineItem {item} {allExpanded} />
+    <OutlineItem {item} {allExpanded} {onContextMenu} />
   {/each}
 </div>
 

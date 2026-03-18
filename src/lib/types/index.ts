@@ -5,6 +5,7 @@
 export * from './message';
 export * from './config';
 export * from './platform';
+export * from './bookmark';
 
 /**
  * 支持的平台类型

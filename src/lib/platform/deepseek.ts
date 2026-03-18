@@ -37,5 +37,26 @@ export const deepseekConfig: ParserConfig = {
   },
   getScrollContainer: function(chatArea:Element): Element | null{
     return chatArea.querySelector('.ds-virtual-list');
+  },
+  
+  // ===== 书签功能相关 =====
+  
+  // DeepSeek URL: /a/chat/s/{conversation-id}
+  getConversationId: function () {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 4 && parts[0] === 'a' && parts[1] === 'chat' && parts[2] === 's') {
+      return parts[3];
+    }
+    return null;
+  },
+  
+  getConversationName: function () {
+    const activeItem = document.querySelector('.chat-item.active, [class*="active"] [class*="title"]');
+    return activeItem?.textContent?.trim() || null;
+  },
+  
+  buildConversationUrl: function (conversationId: string) {
+    return `/a/chat/s/${conversationId}`;
   }
 };

@@ -60,6 +60,7 @@ export interface FeaturesConfig {
   debouncedInterval: number;
   syncScroll: boolean;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  bookmarkGetTextLength: number;
 }
 
 /**

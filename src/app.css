@@ -38,6 +38,11 @@
   /* 激活状态 */
   --outline-active-bg: rgba(0, 122, 204, 0.15);
   --outline-active-border: #007acc;
+
+  /* 书签 */
+  --outline-primary: #007acc;
+  --outline-bookmark-border: #ffc107;
+  --outline-bookmark-bg: rgba(255, 193, 7, 0.1);
 }
 
 /* Dark主题 */
@@ -66,6 +71,11 @@
   /* 激活状态 - Dark模式 */
   --outline-active-bg: rgba(100, 181, 246, 0.2);
   --outline-active-border: #64b5f6;
+
+  /* 书签 - Dark模式 */
+  --outline-primary: #64b5f6;
+  --outline-bookmark-border: #ffc107;
+  --outline-bookmark-bg: rgba(255, 193, 7, 0.15);
 }
 
 /* 高亮动画 */
