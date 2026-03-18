@@ -6,7 +6,7 @@
 import { writable, get } from 'svelte/store';
 import type { Bookmark, BookmarksData, BookmarksExport } from '../types';
 import type { Platform } from '../types';
-import { getCurrentPlatform, getConversationId, getConversationName } from '../services/conversationService';
+import { getCurrentPlatform, getConversationId } from '../services/conversationService';
 import { createTaggedLogger } from '../services/logger';
 
 const STORAGE_KEY = 'chat-outline-bookmarks';

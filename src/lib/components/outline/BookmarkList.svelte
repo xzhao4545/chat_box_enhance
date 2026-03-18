@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { bookmarksStore } from '../../stores';
   import type { Bookmark } from '../../types';
 
   interface Props {

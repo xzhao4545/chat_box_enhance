@@ -4,7 +4,7 @@
   import { bookmarksStore } from '../../stores';
   import type { Bookmark, BookmarksData } from '../../types';
   import BookmarkList from './BookmarkList.svelte';
-  import { getConversationId, isInConversation } from '../../services/conversationService';
+  import { getConversationId } from '../../services/conversationService';
   import { showBookmarkContextMenu, handleMenuSelect } from '../../services/bookmarkContextService';
 
   interface Props {

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { outlineStore, allExpandedStore, featuresStore, bookmarksStore } from '../../stores';
+  import { outlineStore, allExpandedStore, bookmarksStore } from '../../stores';
   import OutlineItem from './OutlineItem.svelte';
   import type { OutlineItem as OutlineItemType } from '../../types';
   import { scrollSyncService } from '../../services/scrollSyncService';
