@@ -2,13 +2,13 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import { bookmarksStore } from '../../stores';
-  import type { Bookmark, BookmarksData } from '../../types';
+  import type { Bookmark, BookmarksData, ConversationBookmarks } from '../../types';
   import BookmarkList from './BookmarkList.svelte';
   import { getConversationId } from '../../services/conversationService';
   import { showBookmarkContextMenu, handleMenuSelect } from '../../services/bookmarkContextService';
 
   interface Props {
-    onNavigate?: (bookmark: Bookmark) => void;
+    onNavigate?: (bookmark: Bookmark & { conversationId: string }) => void;
   }
 
   let { onNavigate }: Props = $props();
@@ -29,9 +29,13 @@
   let currentConversationId = $state('');
 
   // 获取会话显示名称
-  function getConversationDisplayName(conversationId: string): string {
+  function getConversationDisplayName(conversationId: string, convData?: ConversationBookmarks): string {
     if (conversationId === currentConversationId) {
       return '当前会话';
+    }
+    // 优先使用存储的会话名
+    if (convData?.name) {
+      return convData.name;
     }
     // 截取会话ID前8位显示
     return conversationId.length > 12 ? conversationId.substring(0, 12) + '...' : conversationId;
@@ -39,20 +43,22 @@
 
   // 过滤后的书签数据
   let filteredData = $derived(() => {
-    const result: { conversationId: string; bookmarks: Bookmark[] }[] = [];
+    const result: { conversationId: string; convData: ConversationBookmarks; bookmarks: Bookmark[] }[] = [];
 
     if (viewMode === 'current') {
-      const bookmarks = bookmarksData[currentConversationId] || [];
-      const filtered = filterBookmarks(bookmarks);
-      if (filtered.length > 0) {
-        result.push({ conversationId: currentConversationId, bookmarks: filtered });
+      const convData = bookmarksData[currentConversationId];
+      if (convData) {
+        const filtered = filterBookmarks(convData.bookmarks);
+        if (filtered.length > 0) {
+          result.push({ conversationId: currentConversationId, convData, bookmarks: filtered });
+        }
       }
     } else {
       // 全部模式：按会话分组
-      for (const [conversationId, bookmarks] of Object.entries(bookmarksData)) {
-        const filtered = filterBookmarks(bookmarks);
+      for (const [conversationId, convData] of Object.entries(bookmarksData)) {
+        const filtered = filterBookmarks(convData.bookmarks);
         if (filtered.length > 0) {
-          result.push({ conversationId, bookmarks: filtered });
+          result.push({ conversationId, convData, bookmarks: filtered });
         }
       }
       // 按最新书签时间排序会话
@@ -98,13 +104,13 @@
   });
 
   // 处理书签导航
-  function handleNavigate(bookmark: Bookmark) {
-    onNavigate?.(bookmark);
+  function handleNavigate(bookmark: Bookmark, conversationId: string) {
+    onNavigate?.({ ...bookmark, conversationId });
   }
 
   // 处理书签右键菜单
-  function handleContextMenu(e: MouseEvent, bookmark: Bookmark) {
-    showBookmarkContextMenu(e, bookmark);
+  function handleContextMenu(e: MouseEvent, bookmark: Bookmark, conversationId: string) {
+    showBookmarkContextMenu(e, bookmark, conversationId);
   }
 
   // 处理搜索输入
@@ -175,13 +181,14 @@
               onkeydown={(e) => e.key === 'Enter' && toggleConversation(group.conversationId)}
             >
               <span class="toggle-icon">{isCollapsed(group.conversationId) ? '▶' : '▼'}</span>
-              <span class="conversation-name">{getConversationDisplayName(group.conversationId)}</span>
+              <span class="conversation-name">{getConversationDisplayName(group.conversationId, group.convData)}</span>
               <span class="conversation-count">{group.bookmarks.length}</span>
             </div>
           {/if}
           {#if !isCollapsed(group.conversationId)}
             <BookmarkList
               bookmarks={group.bookmarks}
+              conversationId={group.conversationId}
               onNavigate={handleNavigate}
               onContextMenu={handleContextMenu}
             />

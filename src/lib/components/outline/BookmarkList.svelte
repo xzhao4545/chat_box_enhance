@@ -3,11 +3,12 @@
 
   interface Props {
     bookmarks: Bookmark[];
-    onNavigate?: (bookmark: Bookmark) => void;
-    onContextMenu?: (e: MouseEvent, bookmark: Bookmark) => void;
+    conversationId: string;
+    onNavigate?: (bookmark: Bookmark, conversationId: string) => void;
+    onContextMenu?: (e: MouseEvent, bookmark: Bookmark, conversationId: string) => void;
   }
 
-  let { bookmarks, onNavigate, onContextMenu }: Props = $props();
+  let { bookmarks, conversationId, onNavigate, onContextMenu }: Props = $props();
 
   // 格式化时间
   function formatDate(timestamp: number): string {
@@ -29,13 +30,13 @@
 
   // 点击书签
   function handleClick(bookmark: Bookmark) {
-    onNavigate?.(bookmark);
+    onNavigate?.(bookmark, conversationId);
   }
 
   // 右键菜单
   function handleContextMenu(e: MouseEvent, bookmark: Bookmark) {
     e.preventDefault();
-    onContextMenu?.(e, bookmark);
+    onContextMenu?.(e, bookmark, conversationId);
   }
 
   // 键盘导航

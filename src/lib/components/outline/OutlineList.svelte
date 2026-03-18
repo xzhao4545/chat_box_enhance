@@ -36,7 +36,8 @@
   $effect(() => {
     const storeData = $bookmarksStore;
     const conversationId = getConversationId();
-    const bookmarks = conversationId ? (storeData[conversationId] || []) : [];
+    const convData = conversationId ? storeData[conversationId] : undefined;
+    const bookmarks = convData?.bookmarks || [];
     
     const msgBookmarks = new Set<number>();
     const hdrBookmarks = new Map<number, Set<string>>();

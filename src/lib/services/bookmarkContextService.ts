@@ -29,6 +29,7 @@ export interface ContextMenuState {
   items: MenuItem[];
   context: ContextMenuContext | null;
   bookmark: Bookmark | null; // 用于书签列表的右键菜单
+  conversationId: string | null; // 书签所属会话ID
 }
 
 /**
@@ -54,7 +55,8 @@ export const contextMenuState = writable<ContextMenuState>({
   y: 0,
   items: [],
   context: null,
-  bookmark: null
+  bookmark: null,
+  conversationId: null
 });
 
 // 添加书签弹窗状态 store
@@ -120,14 +122,15 @@ export function showContextMenu(event: MouseEvent, context: ContextMenuContext):
     y: event.clientY,
     items,
     context,
-    bookmark: existingBookmark ?? null
+    bookmark: existingBookmark ?? null,
+    conversationId: getConversationId()
   });
 }
 
 /**
  * 显示书签列表项右键菜单
  */
-export function showBookmarkContextMenu(event: MouseEvent, bookmark: Bookmark): void {
+export function showBookmarkContextMenu(event: MouseEvent, bookmark: Bookmark, conversationId: string): void {
   event.preventDefault();
   event.stopPropagation();
 
@@ -156,7 +159,8 @@ export function showBookmarkContextMenu(event: MouseEvent, bookmark: Bookmark): 
     y: event.clientY,
     items,
     context: null,
-    bookmark
+    bookmark,
+    conversationId
   });
 }
 
@@ -170,17 +174,22 @@ export function hideContextMenu(): void {
     y: 0,
     items: [],
     context: null,
-    bookmark: null
+    bookmark: null,
+    conversationId: null
   });
 }
 
 /**
  * 处理菜单项选择
  */
-export function handleMenuSelect(itemId: string): { action: string; bookmark?: Bookmark } {
+export function handleMenuSelect(itemId: string): { action: string; bookmark?: Bookmark; conversationId?: string } {
   const state = get(contextMenuState);
   const resultBookmark = state.bookmark ? state.bookmark : undefined;
-  const result = { action: itemId, bookmark: resultBookmark };
+  const result = { 
+    action: itemId, 
+    bookmark: resultBookmark,
+    conversationId: state.conversationId ?? undefined
+  };
 
   switch (itemId) {
     case 'add':

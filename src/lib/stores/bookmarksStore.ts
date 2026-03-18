@@ -4,13 +4,12 @@
  */
 
 import { writable, get } from 'svelte/store';
-import type { Bookmark, BookmarksData, BookmarksExport } from '../types';
-import type { Platform } from '../types';
-import { getCurrentPlatform, getConversationId } from '../services/conversationService';
+import type { Bookmark, BookmarksData, BookmarksExport, ConversationBookmarks } from '../types';
+import { getConversationId, getConversationName, getCurrentPlatform } from '../services/conversationService';
 import { createTaggedLogger } from '../services/logger';
 
 const STORAGE_KEY = 'chat-outline-bookmarks';
-const EXPORT_VERSION = '1.0.0';
+const EXPORT_VERSION = '2.0.0';
 
 const gmLogger = createTaggedLogger('Bookmarks');
 
@@ -30,7 +29,33 @@ function loadBookmarksFromStorage(): BookmarksData {
     if (!saved) {
       return {};
     }
-    const data = JSON.parse(saved) as BookmarksData;
+    const parsed = JSON.parse(saved);
+    
+    // 兼容旧版本数据格式（v1.x）
+    // 旧格式: { [conversationId]: Bookmark[] }
+    // 新格式: { [conversationId]: { name: string | null, bookmarks: Bookmark[] } }
+    const data: BookmarksData = {};
+    for (const [conversationId, value] of Object.entries(parsed)) {
+      if (Array.isArray(value)) {
+        // 旧格式，迁移到新格式
+        data[conversationId] = {
+          name: null,
+          bookmarks: (value as Bookmark[]).map(b => ({
+            id: b.id,
+            name: b.name,
+            outlineItemType: b.outlineItemType,
+            messageIndex: b.messageIndex,
+            messageHash: b.messageHash,
+            headerPath: b.headerPath,
+            createdAt: b.createdAt
+          }))
+        };
+      } else {
+        // 新格式
+        data[conversationId] = value as ConversationBookmarks;
+      }
+    }
+    
     gmLogger.debug('从 localStorage 加载书签', { conversationCount: Object.keys(data).length });
     return data;
   } catch (error) {
@@ -76,12 +101,9 @@ function createBookmarksStore() {
       messageIndex: number;
       headerPath?: string;
     }): Bookmark {
-      const platform = getCurrentPlatform();
       const bookmark: Bookmark = {
         id: generateBookmarkId(),
         name: params.name,
-        conversationId: params.conversationId,
-        platform,
         outlineItemType: params.outlineItemType,
         messageHash: params.messageHash,
         messageIndex: params.messageIndex,
@@ -91,9 +113,14 @@ function createBookmarksStore() {
 
       update(data => {
         if (!data[params.conversationId]) {
-          data[params.conversationId] = [];
+          // 首次创建该会话的书签，获取会话名
+          const convName = getConversationName();
+          data[params.conversationId] = {
+            name: convName,
+            bookmarks: []
+          };
         }
-        data[params.conversationId].push(bookmark);
+        data[params.conversationId].bookmarks.push(bookmark);
         return { ...data };
       });
 
@@ -107,11 +134,11 @@ function createBookmarksStore() {
     removeBookmark(bookmarkId: string): void {
       update(data => {
         for (const conversationId of Object.keys(data)) {
-          const index = data[conversationId].findIndex(b => b.id === bookmarkId);
+          const index = data[conversationId].bookmarks.findIndex(b => b.id === bookmarkId);
           if (index !== -1) {
-            data[conversationId].splice(index, 1);
+            data[conversationId].bookmarks.splice(index, 1);
             // 如果会话下没有书签了，删除该会话条目
-            if (data[conversationId].length === 0) {
+            if (data[conversationId].bookmarks.length === 0) {
               delete data[conversationId];
             }
             gmLogger.info('删除书签', { id: bookmarkId });
@@ -128,7 +155,7 @@ function createBookmarksStore() {
     updateBookmarkName(bookmarkId: string, newName: string): void {
       update(data => {
         for (const conversationId of Object.keys(data)) {
-          const bookmark = data[conversationId].find(b => b.id === bookmarkId);
+          const bookmark = data[conversationId].bookmarks.find(b => b.id === bookmarkId);
           if (bookmark) {
             bookmark.name = newName;
             gmLogger.info('更新书签名称', { id: bookmarkId, newName });
@@ -144,7 +171,15 @@ function createBookmarksStore() {
      */
     getBookmarksByConversation(conversationId: string): Bookmark[] {
       const data = get({ subscribe });
-      return data[conversationId] || [];
+      return data[conversationId]?.bookmarks || [];
+    },
+    
+    /**
+     * 获取指定会话的信息（名称和书签列表）
+     */
+    getConversationData(conversationId: string): ConversationBookmarks | undefined {
+      const data = get({ subscribe });
+      return data[conversationId];
     },
     
     /**
@@ -156,11 +191,17 @@ function createBookmarksStore() {
     },
     
     /**
-     * 获取所有书签（扁平化列表）
+     * 获取所有书签（扁平化列表，包含会话ID）
      */
-    getAllBookmarks(): Bookmark[] {
+    getAllBookmarks(): Array<Bookmark & { conversationId: string }> {
       const data = get({ subscribe });
-      return Object.values(data).flat();
+      const result: Array<Bookmark & { conversationId: string }> = [];
+      for (const [conversationId, convData] of Object.entries(data)) {
+        for (const bookmark of convData.bookmarks) {
+          result.push({ ...bookmark, conversationId });
+        }
+      }
+      return result;
     },
     
     /**
@@ -171,31 +212,46 @@ function createBookmarksStore() {
     },
     
     /**
-     * 按平台过滤书签
+     * 获取所有会话信息列表（用于书签面板展示）
      */
-    filterByPlatform(platform: Platform): Bookmark[] {
+    getAllConversations(): Array<{ conversationId: string; name: string | null; bookmarkCount: number }> {
       const data = get({ subscribe });
-      return Object.values(data)
-        .flat()
-        .filter(b => b.platform === platform);
+      return Object.entries(data).map(([conversationId, convData]) => ({
+        conversationId,
+        name: convData.name,
+        bookmarkCount: convData.bookmarks.length
+      }));
     },
     
     /**
      * 搜索书签（按名称）
      */
-    searchBookmarks(query: string, conversationId?: string): Bookmark[] {
+    searchBookmarks(query: string, conversationId?: string): Array<Bookmark & { conversationId: string }> {
       const data = get({ subscribe });
       const lowerQuery = query.toLowerCase();
       
-      const searchInList = (bookmarks: Bookmark[]): Bookmark[] => {
-        return bookmarks.filter(b => b.name.toLowerCase().includes(lowerQuery));
+      const result: Array<Bookmark & { conversationId: string }> = [];
+      
+      const searchInConv = (convId: string, bookmarks: Bookmark[]) => {
+        for (const b of bookmarks) {
+          if (b.name.toLowerCase().includes(lowerQuery)) {
+            result.push({ ...b, conversationId: convId });
+          }
+        }
       };
       
       if (conversationId) {
-        return searchInList(data[conversationId] || []);
+        const convData = data[conversationId];
+        if (convData) {
+          searchInConv(conversationId, convData.bookmarks);
+        }
+      } else {
+        for (const [convId, convData] of Object.entries(data)) {
+          searchInConv(convId, convData.bookmarks);
+        }
       }
       
-      return searchInList(Object.values(data).flat());
+      return result;
     },
     
     /**
@@ -204,8 +260,7 @@ function createBookmarksStore() {
     hasBookmarkForMessageIndex(messageIndex: number, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
-      // 只检查 message 类型的书签
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.some(b => b.messageIndex === messageIndex && b.outlineItemType === 'message');
     },
     
@@ -215,7 +270,7 @@ function createBookmarksStore() {
     hasBookmarkForHeader(messageIndex: number, headerPath: string, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.some(b => 
         b.messageIndex === messageIndex && 
         b.outlineItemType === 'header' && 
@@ -229,7 +284,7 @@ function createBookmarksStore() {
     getBookmarkByMessageIndex(messageIndex: number, conversationId?: string): Bookmark | undefined {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.find(b => b.messageIndex === messageIndex && b.outlineItemType === 'message');
     },
     
@@ -239,7 +294,7 @@ function createBookmarksStore() {
     getBookmarkByHeaderPath(messageIndex: number, headerPath: string, conversationId?: string): Bookmark | undefined {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.find(b => 
         b.messageIndex === messageIndex && 
         b.outlineItemType === 'header' && 
@@ -248,24 +303,37 @@ function createBookmarksStore() {
     },
     
     /**
-     * 获取指定消息索引的所有书签（用于显示书签指示器）
-     * 返回该消息下所有书签（包括 message 和 header 类型）
+     * 获取指定消息索引的所有书签
      */
     getBookmarksForMessage(messageIndex: number, conversationId?: string): Bookmark[] {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.filter(b => b.messageIndex === messageIndex);
     },
     
     /**
-     * 检查消息是否有任何书签（用于消息级别的书签指示器）
+     * 检查消息是否有任何书签
      */
     hasAnyBookmarkForMessage(messageIndex: number, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
-      const bookmarks = data[convId] || [];
+      const bookmarks = data[convId]?.bookmarks || [];
       return bookmarks.some(b => b.messageIndex === messageIndex);
+    },
+    
+    /**
+     * 根据 bookmarkId 获取完整的书签信息（包含 conversationId）
+     */
+    getBookmarkById(bookmarkId: string): (Bookmark & { conversationId: string }) | undefined {
+      const data = get({ subscribe });
+      for (const [conversationId, convData] of Object.entries(data)) {
+        const bookmark = convData.bookmarks.find(b => b.id === bookmarkId);
+        if (bookmark) {
+          return { ...bookmark, conversationId };
+        }
+      }
+      return undefined;
     },
     
     /**
@@ -276,8 +344,7 @@ function createBookmarksStore() {
       return {
         version: EXPORT_VERSION,
         exportedAt: Date.now(),
-        platform: getCurrentPlatform(),
-        bookmarks: { ...data }
+        data: { ...data }
       };
     },
     
@@ -285,27 +352,30 @@ function createBookmarksStore() {
      * 导入书签
      */
     importBookmarks(exportData: BookmarksExport, merge = true): number {
-      const importedBookmarks: Bookmark[] = [];
+      let importedCount = 0;
       
       update(data => {
-        for (const [conversationId, bookmarks] of Object.entries(exportData.bookmarks)) {
+        for (const [conversationId, convData] of Object.entries(exportData.data)) {
           if (!merge) {
             // 覆盖模式
-            data[conversationId] = bookmarks;
-            importedBookmarks.push(...bookmarks);
+            data[conversationId] = convData;
+            importedCount += convData.bookmarks.length;
           } else {
             // 合并模式
             if (!data[conversationId]) {
-              data[conversationId] = [];
-            }
-            for (const bookmark of bookmarks) {
-              // 检查是否已存在相同 messageIndex 的书签
-              const exists = data[conversationId].some(
-                b => b.messageIndex === bookmark.messageIndex
-              );
-              if (!exists) {
-                data[conversationId].push(bookmark);
-                importedBookmarks.push(bookmark);
+              data[conversationId] = convData;
+              importedCount += convData.bookmarks.length;
+            } else {
+              for (const bookmark of convData.bookmarks) {
+                const exists = data[conversationId].bookmarks.some(
+                  b => b.messageIndex === bookmark.messageIndex && 
+                       b.outlineItemType === bookmark.outlineItemType &&
+                       b.headerPath === bookmark.headerPath
+                );
+                if (!exists) {
+                  data[conversationId].bookmarks.push(bookmark);
+                  importedCount++;
+                }
               }
             }
           }
@@ -313,8 +383,8 @@ function createBookmarksStore() {
         return { ...data };
       });
       
-      gmLogger.info('导入书签', { count: importedBookmarks.length, merge });
-      return importedBookmarks.length;
+      gmLogger.info('导入书签', { count: importedCount, merge });
+      return importedCount;
     },
     
     /**
@@ -351,9 +421,9 @@ export function getBookmarksStats(): {
   const byConversation: { [conversationId: string]: number } = {};
   let total = 0;
   
-  for (const [conversationId, bookmarks] of Object.entries(data)) {
-    byConversation[conversationId] = bookmarks.length;
-    total += bookmarks.length;
+  for (const [conversationId, convData] of Object.entries(data)) {
+    byConversation[conversationId] = convData.bookmarks.length;
+    total += convData.bookmarks.length;
   }
   
   return { total, byConversation };

@@ -2,20 +2,14 @@
  * 书签相关类型定义
  */
 
-import type { Platform } from './index';
-
 /**
- * 书签接口
+ * 书签接口（不包含会话相关字段，这些字段在会话级别存储）
  */
 export interface Bookmark {
   /** 书签唯一ID */
   id: string;
   /** 书签名称（用于展示和搜索） */
   name: string;
-  /** 会话ID */
-  conversationId: string;
-  /** 平台标识 */
-  platform: Platform;
   /** 大纲元素类型 */
   outlineItemType: 'message' | 'header';
   /** 消息索引（用于定位消息位置） */
@@ -29,11 +23,23 @@ export interface Bookmark {
 }
 
 /**
+ * 会话书签数据
+ */
+export interface ConversationBookmarks {
+  /** 会话名称（首次创建时获取，若未实现则为 null） */
+  name: string | null;
+  /** 该会话下的书签列表 */
+  bookmarks: Bookmark[];
+}
+
+/**
  * 待跳转书签信息 (sessionStorage 存储)
  */
 export interface PendingNavigation {
   /** 待跳转的书签ID */
   bookmarkId: string;
+  /** 会话ID */
+  conversationId: string;
   /** 跳转发起时间 */
   timestamp: number;
 }
@@ -43,7 +49,7 @@ export interface PendingNavigation {
  * 按 conversationId 分组存储
  */
 export interface BookmarksData {
-  [conversationId: string]: Bookmark[];
+  [conversationId: string]: ConversationBookmarks;
 }
 
 /**
@@ -54,10 +60,8 @@ export interface BookmarksExport {
   version: string;
   /** 导出时间戳 */
   exportedAt: number;
-  /** 来源平台 */
-  platform: Platform;
   /** 书签数据 */
-  bookmarks: BookmarksData;
+  data: BookmarksData;
 }
 
 /**

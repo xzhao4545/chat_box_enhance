@@ -26,6 +26,7 @@
     buildOutlineItemContext
   } from '../../services/bookmarkContextService';
   import type { Bookmark } from '../../types';
+  import type { BookmarkWithConversation } from '../../services/bookmarkNavigationService';
 
   interface Props {
     onRefresh: () => void;
@@ -141,7 +142,7 @@
   }
 
   // 处理书签导航
-  async function handleBookmarkNavigate(bookmark: Bookmark) {
+  async function handleBookmarkNavigate(bookmark: Bookmark & { conversationId: string }) {
     // 先切换到大纲视图，确保大纲元素可见
     viewMode = 'outline';
     
@@ -159,8 +160,8 @@
   function handleMenuSelectWrapper(itemId: string) {
     const result = handleMenuSelect(itemId);
     // 如果是跳转操作且有待跳转的书签
-    if (itemId === 'navigate' && result.bookmark) {
-      handleBookmarkNavigate(result.bookmark);
+    if (itemId === 'navigate' && result.bookmark && result.conversationId) {
+      handleBookmarkNavigate({ ...result.bookmark, conversationId: result.conversationId });
     }
   }
 </script>

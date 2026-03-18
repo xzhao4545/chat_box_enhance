@@ -8,7 +8,7 @@ import { bookmarksStore, parserConfigStore } from '../stores';
 import type { Bookmark, PendingNavigation, HeaderTreeNode } from '../types';
 import { getConversationId, isInConversation, buildConversationUrl } from './conversationService';
 import { messageCacheManager } from './messageCacheManager';
-import { scrollSyncService } from './scrollSyncService';
+  import { scrollSyncService } from './scrollSyncService';
 import { highlightElement } from '../utils';
 import { pushPanelNotice } from '../stores/panelStatus';
 import { createTaggedLogger } from './logger';
@@ -29,13 +29,20 @@ export interface NavigationResult {
 }
 
 /**
+ * 带会话ID的书签（用于导航）
+ */
+export interface BookmarkWithConversation extends Bookmark {
+  conversationId: string;
+}
+
+/**
  * 书签导航服务
  */
 export class BookmarkNavigationService {
   /**
    * 导航到书签位置
    */
-  async navigateToBookmark(bookmark: Bookmark): Promise<NavigationResult> {
+  async navigateToBookmark(bookmark: BookmarkWithConversation): Promise<NavigationResult> {
     // 检查是否需要跨会话跳转
     if (!isInConversation(bookmark.conversationId)) {
       return this.handleCrossConversationNavigation(bookmark);
@@ -48,7 +55,7 @@ export class BookmarkNavigationService {
   /**
    * 处理跨会话跳转
    */
-  private handleCrossConversationNavigation(bookmark: Bookmark): NavigationResult {
+  private handleCrossConversationNavigation(bookmark: BookmarkWithConversation): NavigationResult {
     const config = get(parserConfigStore);
     if (!config?.buildConversationUrl) {
       return {
@@ -68,12 +75,13 @@ export class BookmarkNavigationService {
     // 保存待跳转信息到 sessionStorage
     const pendingNav: PendingNavigation = {
       bookmarkId: bookmark.id,
+      conversationId: bookmark.conversationId,
       timestamp: Date.now()
     };
 
     try {
       sessionStorage.setItem(PENDING_NAV_KEY, JSON.stringify(pendingNav));
-      logger.info('保存待跳转书签', { bookmarkId: bookmark.id });
+      logger.info('保存待跳转书签', { bookmarkId: bookmark.id, conversationId: bookmark.conversationId });
 
       return {
         success: true,
@@ -193,7 +201,7 @@ export class BookmarkNavigationService {
    * 检查并恢复待跳转的书签
    * 应在页面加载后调用
    */
-  checkAndResumePendingNavigation(): Bookmark | null {
+  checkAndResumePendingNavigation(): BookmarkWithConversation | null {
     try {
       const saved = sessionStorage.getItem(PENDING_NAV_KEY);
       if (!saved) {
@@ -212,9 +220,8 @@ export class BookmarkNavigationService {
       // 清除 sessionStorage
       sessionStorage.removeItem(PENDING_NAV_KEY);
 
-      // 查找书签
-      const allBookmarks = bookmarksStore.getAllBookmarks();
-      const bookmark = allBookmarks.find(b => b.id === pendingNav.bookmarkId);
+      // 查找书签（使用新的 getBookmarkById 方法）
+      const bookmark = bookmarksStore.getBookmarkById(pendingNav.bookmarkId);
 
       if (!bookmark) {
         logger.warn('未找到待跳转的书签', { bookmarkId: pendingNav.bookmarkId });
@@ -224,6 +231,7 @@ export class BookmarkNavigationService {
       logger.info('恢复待跳转书签', { 
         bookmarkId: bookmark.id, 
         name: bookmark.name,
+        conversationId: bookmark.conversationId,
         headerPath: bookmark.headerPath 
       });
       return bookmark;
@@ -236,7 +244,7 @@ export class BookmarkNavigationService {
   /**
    * 执行待跳转书签的导航
    */
-  async resumeNavigation(bookmark: Bookmark): Promise<void> {
+  async resumeNavigation(bookmark: BookmarkWithConversation): Promise<void> {
     // 等待大纲初始化完成
     await this.waitForOutlineReady();
 
