@@ -12,7 +12,6 @@ import { scrollSyncService } from './scrollSyncService';
 import { highlightElement } from '../utils';
 import { pushPanelNotice } from '../stores/panelStatus';
 import { createTaggedLogger } from './logger';
-import { buildMessageHash } from '../utils/outlineBuilder';
 
 const logger = createTaggedLogger('BookmarkNav');
 
@@ -37,8 +36,6 @@ export class BookmarkNavigationService {
    * 导航到书签位置
    */
   async navigateToBookmark(bookmark: Bookmark): Promise<NavigationResult> {
-    const currentConversationId = getConversationId();
-
     // 检查是否需要跨会话跳转
     if (!isInConversation(bookmark.conversationId)) {
       return this.handleCrossConversationNavigation(bookmark);
@@ -116,12 +113,14 @@ export class BookmarkNavigationService {
 
       // 如果是 header 类型且有 headerPath，尝试定位到具体标题
       if (bookmark.outlineItemType === 'header' && bookmark.headerPath) {
-        const headerElement = this.findHeaderByPath(
+        const headerNode = this.findHeaderByPath(
           cachedItem.outlineItem.headers || [],
           bookmark.headerPath
         );
-        if (headerElement) {
-          return this.scrollToElement(headerElement, cachedItem.outlineElement);
+        if (headerNode) {
+          // 获取 header 对应的大纲元素
+          const headerOutlineElement = scrollSyncService.getHeaderOutlineElement(headerNode.id);
+          return this.scrollToElement(headerNode.element, headerOutlineElement || cachedItem.outlineElement);
         }
         // 找不到标题，跳转到消息位置
         pushPanelNotice('标题结构已变更，跳转到消息位置', 'warning', 3000);
@@ -144,11 +143,12 @@ export class BookmarkNavigationService {
   }
 
   /**
-   * 根据路径查找标题元素
+   * 根据路径查找标题节点
    * @param headers 标题树
    * @param headerPath 路径，如 "0.1.2"
+   * @returns 返回找到的 HeaderTreeNode，未找到返回 null
    */
-  private findHeaderByPath(headers: HeaderTreeNode[], headerPath: string): Element | null {
+  private findHeaderByPath(headers: HeaderTreeNode[], headerPath: string): HeaderTreeNode | null {
     if (!headerPath) return null;
 
     const indices = headerPath.split('.').map(s => parseInt(s, 10));
@@ -166,7 +166,7 @@ export class BookmarkNavigationService {
       currentNodes = targetNode.children;
     }
 
-    return targetNode?.element || null;
+    return targetNode;
   }
 
   /**
@@ -177,10 +177,10 @@ export class BookmarkNavigationService {
     targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
     highlightElement(targetElement);
 
-    // 同步大纲滚动
+    // 同步大纲滚动并高亮
     if (outlineElement) {
       scrollSyncService.focusOutlineElement(outlineElement);
-      outlineElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollSyncService.applyOutlineFocus(outlineElement);
     }
 
     return {

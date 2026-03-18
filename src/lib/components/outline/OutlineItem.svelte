@@ -6,6 +6,7 @@
   import { scrollSyncService } from '../../services/scrollSyncService';
   import { bookmarksStore } from '../../stores';
   import { buildMessageHash } from '../../utils/outlineBuilder';
+  import { getConversationId } from '../../services/conversationService';
 
   interface Props {
     item: OutlineItemType;
@@ -25,12 +26,15 @@
   let isExpanded = $state(true);
   let containerElement: HTMLDivElement | undefined = $state();
 
-  // 是否有书签（基于 messageIndex）
-  let hasBookmark = $state(false);
-
-  // 检查书签
-  $effect(() => {
-    hasBookmark = bookmarksStore.hasBookmarkForMessageIndex(item.index);
+  // 使用 $bookmarksStore 创建响应式依赖，确保书签变化时 UI 自动更新
+  let bookmarksData = $bookmarksStore;
+  
+  // 检查消息是否已有书签（仅 message 类型，不包括 header 子标题的书签）
+  let hasBookmark = $derived.by(() => {
+    const conversationId = getConversationId();
+    const bookmarks = conversationId ? (bookmarksData[conversationId] || []) : [];
+    // 只检查 message 类型的书签，不包括 header 类型
+    return bookmarks.some((b) => b.messageIndex === item.index && b.outlineItemType === 'message');
   });
 
   function scrollToElement() {

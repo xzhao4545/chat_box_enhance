@@ -3,6 +3,7 @@
   import { highlightElement } from '../../utils';
   import { scrollSyncService } from '../../services/scrollSyncService';
   import { bookmarksStore } from '../../stores';
+  import { getConversationId } from '../../services/conversationService';
   // 自导入用于递归渲染（Svelte 5 推荐方式）
   import HeaderTree from './HeaderTree.svelte';
 
@@ -85,9 +86,18 @@
     };
   }
 
-  // 检查节点是否有书签（基于 messageIndex）
-  function hasBookmark(): boolean {
-    return bookmarksStore.hasBookmarkForMessageIndex(parentMessageIndex);
+  // 使用 $bookmarksStore 创建响应式依赖
+  let bookmarksData = $bookmarksStore;
+  
+  // 检查节点是否有书签（基于 messageIndex 和 headerPath 精确匹配）
+  function hasHeaderBookmark(nodePath: string): boolean {
+    const conversationId = getConversationId();
+    const bookmarks = conversationId ? (bookmarksData[conversationId] || []) : [];
+    return bookmarks.some(b => 
+      b.messageIndex === parentMessageIndex && 
+      b.outlineItemType === 'header' && 
+      b.headerPath === nodePath
+    );
   }
 
   // 构建子节点的路径
@@ -105,7 +115,7 @@
     <div class="tree-node-wrapper">
       <div
         class="tree-node header-level-{node.level}"
-        class:has-bookmark={hasBookmark()}
+        class:has-bookmark={hasHeaderBookmark(nodePath)}
         use:registerNode={node.id}
         onclick={(e) => scrollToElement(node.element, e)}
         oncontextmenu={(e) => handleContextMenu(e, node, nodePath)}
@@ -114,7 +124,7 @@
         onkeydown={(e) => e.key === 'Enter' && scrollToElement(node.element, e)}
       >
         <span class="node-text">
-          {#if hasBookmark()}<span class="bookmark-indicator">🔖</span>{/if}
+          {#if hasHeaderBookmark(nodePath)}<span class="bookmark-indicator">🔖</span>{/if}
           {node.text}
         </span>
         {#if node.children.length > 0}

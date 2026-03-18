@@ -252,6 +252,7 @@
     background: var(--outline-bg);
     color: var(--outline-text);
     font-size: 12px;
+    box-sizing: border-box;
   }
 
   .search-input:focus {

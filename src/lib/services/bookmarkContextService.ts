@@ -76,8 +76,19 @@ export function showContextMenu(event: MouseEvent, context: ContextMenuContext):
   event.preventDefault();
   event.stopPropagation();
 
-  const hasBookmark = bookmarksStore.hasBookmarkForMessageIndex(context.messageIndex);
-  const existingBookmark = bookmarksStore.getBookmarkByMessageIndex(context.messageIndex);
+  // 根据大纲元素类型检查书签
+  let hasBookmark = false;
+  let existingBookmark: Bookmark | undefined;
+
+  if (context.outlineItemType === 'header') {
+    // 标题类型：检查是否有匹配的 header 书签
+    hasBookmark = bookmarksStore.hasBookmarkForHeader(context.messageIndex, context.headerPath || '');
+    existingBookmark = bookmarksStore.getBookmarkByHeaderPath(context.messageIndex, context.headerPath || '');
+  } else {
+    // 消息类型：检查是否有 message 类型的书签
+    hasBookmark = bookmarksStore.hasBookmarkForMessageIndex(context.messageIndex);
+    existingBookmark = bookmarksStore.getBookmarkByMessageIndex(context.messageIndex);
+  }
 
   const items: MenuItem[] = [];
 
@@ -187,7 +198,13 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
       if (state.bookmark) {
         bookmarksStore.removeBookmark(state.bookmark.id);
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
+        // Fallback: 根据 context 类型查找书签
+        let bookmark: Bookmark | undefined;
+        if (state.context.outlineItemType === 'header') {
+          bookmark = bookmarksStore.getBookmarkByHeaderPath(state.context.messageIndex, state.context.headerPath || '');
+        } else {
+          bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
+        }
         if (bookmark) {
           bookmarksStore.removeBookmark(bookmark.id);
         }
@@ -202,7 +219,13 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
           bookmark: state.bookmark
         });
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
+        // Fallback: 根据 context 类型查找书签
+        let bookmark: Bookmark | undefined;
+        if (state.context.outlineItemType === 'header') {
+          bookmark = bookmarksStore.getBookmarkByHeaderPath(state.context.messageIndex, state.context.headerPath || '');
+        } else {
+          bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
+        }
         if (bookmark) {
           renameBookmarkModalState.set({
             visible: true,

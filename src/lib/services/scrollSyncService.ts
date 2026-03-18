@@ -72,6 +72,10 @@ export class ScrollSyncService {
     }
   }
 
+  public getHeaderOutlineElement(nodeId: string): Element | null {
+    return this.headerOutlineElements.get(nodeId) || null;
+  }
+
   public scheduleRebuildScrollAnchors(): void {
     if (this.rebuildScrollAnchorsTimer) {
       return;
@@ -805,7 +809,7 @@ export class ScrollSyncService {
     }, 300);
   }
 
-  private applyOutlineFocus(outlineElement: Element): void {
+  public applyOutlineFocus(outlineElement: Element): void {
     this.lastHighlightElement = outlineElement;
 
     if (this.highlightTimer) {

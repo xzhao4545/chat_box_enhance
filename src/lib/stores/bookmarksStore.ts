@@ -199,23 +199,73 @@ function createBookmarksStore() {
     },
     
     /**
-     * 检查指定消息索引是否已有书签
+     * 检查指定消息索引是否已有书签（仅 message 类型）
      */
     hasBookmarkForMessageIndex(messageIndex: number, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.some(b => b.messageIndex === messageIndex);
+      // 只检查 message 类型的书签
+      return bookmarks.some(b => b.messageIndex === messageIndex && b.outlineItemType === 'message');
     },
     
     /**
-     * 获取指定消息索引的书签
+     * 检查指定标题是否已有书签
+     */
+    hasBookmarkForHeader(messageIndex: number, headerPath: string, conversationId?: string): boolean {
+      const data = get({ subscribe });
+      const convId = conversationId || getConversationId();
+      const bookmarks = data[convId] || [];
+      return bookmarks.some(b => 
+        b.messageIndex === messageIndex && 
+        b.outlineItemType === 'header' && 
+        b.headerPath === headerPath
+      );
+    },
+    
+    /**
+     * 获取指定消息的书签（message 类型）
      */
     getBookmarkByMessageIndex(messageIndex: number, conversationId?: string): Bookmark | undefined {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.find(b => b.messageIndex === messageIndex);
+      return bookmarks.find(b => b.messageIndex === messageIndex && b.outlineItemType === 'message');
+    },
+    
+    /**
+     * 获取指定标题的书签
+     */
+    getBookmarkByHeaderPath(messageIndex: number, headerPath: string, conversationId?: string): Bookmark | undefined {
+      const data = get({ subscribe });
+      const convId = conversationId || getConversationId();
+      const bookmarks = data[convId] || [];
+      return bookmarks.find(b => 
+        b.messageIndex === messageIndex && 
+        b.outlineItemType === 'header' && 
+        b.headerPath === headerPath
+      );
+    },
+    
+    /**
+     * 获取指定消息索引的所有书签（用于显示书签指示器）
+     * 返回该消息下所有书签（包括 message 和 header 类型）
+     */
+    getBookmarksForMessage(messageIndex: number, conversationId?: string): Bookmark[] {
+      const data = get({ subscribe });
+      const convId = conversationId || getConversationId();
+      const bookmarks = data[convId] || [];
+      return bookmarks.filter(b => b.messageIndex === messageIndex);
+    },
+    
+    /**
+     * 检查消息是否有任何书签（用于消息级别的书签指示器）
+     */
+    hasAnyBookmarkForMessage(messageIndex: number, conversationId?: string): boolean {
+      const data = get({ subscribe });
+      const convId = conversationId || getConversationId();
+      const bookmarks = data[convId] || [];
+      return bookmarks.some(b => b.messageIndex === messageIndex);
     },
     
     /**
