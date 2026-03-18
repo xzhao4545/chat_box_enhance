@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import { outlineStore, allExpandedStore, featuresStore } from '../../stores';
+  import { outlineStore, allExpandedStore, featuresStore, bookmarksStore } from '../../stores';
   import OutlineItem from './OutlineItem.svelte';
   import type { OutlineItem as OutlineItemType } from '../../types';
   import { scrollSyncService } from '../../services/scrollSyncService';
+  import { getConversationId } from '../../services/conversationService';
 
   interface Props {
     filterText?: string;
@@ -24,6 +25,38 @@
   let items = $state<OutlineItemType[]>([]);
   let allExpanded = $state(true);
   let outlineContainer: HTMLDivElement;
+
+  // 书签状态缓存（优化性能：只在父组件计算一次）
+  // messageBookmarks: 存储有 message 类型书签的 messageIndex
+  // headerBookmarks: 存储有 header 类型书签的 Map<messageIndex, Set<headerPath>>
+  let messageBookmarks = $state<Set<number>>(new Set());
+  let headerBookmarks = $state<Map<number, Set<string>>>(new Map());
+
+  // 统一计算书签状态
+  $effect(() => {
+    const storeData = $bookmarksStore;
+    const conversationId = getConversationId();
+    const bookmarks = conversationId ? (storeData[conversationId] || []) : [];
+    
+    const msgBookmarks = new Set<number>();
+    const hdrBookmarks = new Map<number, Set<string>>();
+    
+    for (const bookmark of bookmarks) {
+      if (bookmark.outlineItemType === 'message') {
+        msgBookmarks.add(bookmark.messageIndex);
+      } else if (bookmark.outlineItemType === 'header' && bookmark.headerPath) {
+        let headerSet = hdrBookmarks.get(bookmark.messageIndex);
+        if (!headerSet) {
+          headerSet = new Set();
+          hdrBookmarks.set(bookmark.messageIndex, headerSet);
+        }
+        headerSet.add(bookmark.headerPath);
+      }
+    }
+    
+    messageBookmarks = msgBookmarks;
+    headerBookmarks = hdrBookmarks;
+  });
 
   function filterItems(items: OutlineItemType[], filter: string, regex: boolean): OutlineItemType[] {
     if (!filter) return items;
@@ -68,7 +101,13 @@
 
 <div class="outline-content" id="outline-content" bind:this={outlineContainer}>
   {#each showItems as item (item.id)}
-    <OutlineItem {item} {allExpanded} {onContextMenu} />
+    <OutlineItem 
+      {item} 
+      {allExpanded} 
+      {onContextMenu} 
+      hasBookmark={messageBookmarks.has(item.index)}
+      headerBookmarks={headerBookmarks.get(item.index) || new Set()}
+    />
   {/each}
 </div>
 

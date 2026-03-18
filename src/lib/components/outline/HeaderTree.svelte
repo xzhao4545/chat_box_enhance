@@ -2,8 +2,6 @@
   import type { HeaderTreeNode } from '../../types';
   import { highlightElement } from '../../utils';
   import { scrollSyncService } from '../../services/scrollSyncService';
-  import { bookmarksStore } from '../../stores';
-  import { getConversationId } from '../../services/conversationService';
   // 自导入用于递归渲染（Svelte 5 推荐方式）
   import HeaderTree from './HeaderTree.svelte';
 
@@ -23,6 +21,7 @@
     parentMessageText?: string;
     parentMessageHash?: string;
     currentPath?: string; // 当前标题路径
+    headerBookmarks?: Set<string>; // 该消息下有书签的标题路径
   }
 
   let { 
@@ -33,7 +32,8 @@
     parentMessageIndex = 0,
     parentMessageText = '',
     parentMessageHash = '',
-    currentPath = ''
+    currentPath = '',
+    headerBookmarks = new Set<string>()
   }: Props = $props();
 
   // 展开状态
@@ -86,18 +86,9 @@
     };
   }
 
-  // 使用 $bookmarksStore 创建响应式依赖
-  let bookmarksData = $bookmarksStore;
-  
-  // 检查节点是否有书签（基于 messageIndex 和 headerPath 精确匹配）
+  // 检查节点是否有书签（使用父组件传入的 Set，O(1) 查找）
   function hasHeaderBookmark(nodePath: string): boolean {
-    const conversationId = getConversationId();
-    const bookmarks = conversationId ? (bookmarksData[conversationId] || []) : [];
-    return bookmarks.some(b => 
-      b.messageIndex === parentMessageIndex && 
-      b.outlineItemType === 'header' && 
-      b.headerPath === nodePath
-    );
+    return headerBookmarks.has(nodePath);
   }
 
   // 构建子节点的路径
@@ -148,6 +139,7 @@
           {parentMessageText}
           {parentMessageHash}
           currentPath={nodePath}
+          {headerBookmarks}
         />
       {/if}
     </div>
