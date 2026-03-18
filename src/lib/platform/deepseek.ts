@@ -52,8 +52,8 @@ export const deepseekConfig: ParserConfig = {
   },
   
   getConversationName: function () {
-    const activeItem = document.querySelector('.chat-item.active, [class*="active"] [class*="title"]');
-    return activeItem?.textContent?.trim() || null;
+    const ele = document.querySelectorAll('.ds-scroll-area')[2];
+    return ele.children[0].textContent;
   },
   
   buildConversationUrl: function (conversationId: string) {
