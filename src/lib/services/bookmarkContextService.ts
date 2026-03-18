@@ -76,8 +76,8 @@ export function showContextMenu(event: MouseEvent, context: ContextMenuContext):
   event.preventDefault();
   event.stopPropagation();
 
-  const hasBookmark = bookmarksStore.hasBookmarkForMessageId(context.messageId);
-  const existingBookmark = bookmarksStore.getBookmarkByMessageId(context.messageId);
+  const hasBookmark = bookmarksStore.hasBookmarkForMessageIndex(context.messageIndex);
+  const existingBookmark = bookmarksStore.getBookmarkByMessageIndex(context.messageIndex);
 
   const items: MenuItem[] = [];
 
@@ -187,7 +187,7 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
       if (state.bookmark) {
         bookmarksStore.removeBookmark(state.bookmark.id);
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByMessageId(state.context.messageId);
+        const bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
         if (bookmark) {
           bookmarksStore.removeBookmark(bookmark.id);
         }
@@ -202,7 +202,7 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
           bookmark: state.bookmark
         });
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByMessageId(state.context.messageId);
+        const bookmark = bookmarksStore.getBookmarkByMessageIndex(state.context.messageIndex);
         if (bookmark) {
           renameBookmarkModalState.set({
             visible: true,
@@ -252,7 +252,6 @@ export function getDefaultNameLength(): number {
  * 构建大纲元素的上下文信息
  */
 export function buildOutlineItemContext(
-  messageId: string,
   outlineItemType: 'message' | 'header',
   messageIndex: number,
   messageText: string,
@@ -260,7 +259,6 @@ export function buildOutlineItemContext(
   element: Element
 ): ContextMenuContext {
   return {
-    messageId,
     outlineItemType,
     messageIndex,
     messageText,

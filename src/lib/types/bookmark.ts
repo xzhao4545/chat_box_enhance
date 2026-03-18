@@ -16,14 +16,12 @@ export interface Bookmark {
   conversationId: string;
   /** 平台标识 */
   platform: Platform;
-  /** 消息元素ID (对应 DOM 元素的 cbe-message-id 属性，用于定位消息) */
-  messageId: string;
   /** 大纲元素类型 */
   outlineItemType: 'message' | 'header';
+  /** 消息索引（用于定位消息位置） */
+  messageIndex: number;
   /** 消息内容指纹 (用于检测内容变更) */
   messageHash: string;
-  /** 消息索引 */
-  messageIndex: number;
   /** 创建时间戳 */
   createdAt: number;
 }
@@ -64,8 +62,6 @@ export interface BookmarksExport {
  * 右键菜单上下文
  */
 export interface ContextMenuContext {
-  /** 消息元素ID (对应 DOM 元素的 cbe-message-id 属性) */
-  messageId: string;
   /** 大纲元素类型 */
   outlineItemType: 'message' | 'header';
   /** 关联的消息索引 */

@@ -11,7 +11,6 @@
     item: OutlineItemType;
     allExpanded?: boolean;
     onContextMenu?: (e: MouseEvent, context: {
-      messageId: string;
       outlineItemType: 'message' | 'header';
       messageIndex: number;
       messageText: string;
@@ -24,19 +23,12 @@
   let isExpanded = $state(true);
   let containerElement: HTMLDivElement | undefined = $state();
 
-  // 消息元素ID（从 DOM 元素获取）
-  let messageId = $state('');
-
-  // 是否有书签
+  // 是否有书签（基于 messageIndex）
   let hasBookmark = $state(false);
 
-  // 获取 messageId 并检查书签
+  // 检查书签
   $effect(() => {
-    const id = item.element.getAttribute('cbe-message-id') || '';
-    messageId = id;
-    if (id) {
-      hasBookmark = bookmarksStore.hasBookmarkForMessageId(id);
-    }
+    hasBookmark = bookmarksStore.hasBookmarkForMessageIndex(item.index);
   });
 
   function scrollToElement() {
@@ -58,11 +50,10 @@
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
-    if (onContextMenu && messageId) {
+    if (onContextMenu) {
       // 计算 hash
       const hash = buildMessageHash(item.index, item.searchText);
       onContextMenu(e, {
-        messageId,
         outlineItemType: 'message',
         messageIndex: item.index,
         messageText: item.searchText,
@@ -126,7 +117,7 @@
       </div>
       {#if isExpanded}
         <div class="outline-ai-content">
-          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} parentMessageId={messageId} />
+          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} />
         </div>
       {/if}
     </div>

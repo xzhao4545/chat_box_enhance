@@ -12,17 +12,15 @@
     depth?: number;
     allExpanded?: boolean;
     onContextMenu?: (e: MouseEvent, context: {
-      messageId: string;
       outlineItemType: 'message' | 'header';
       messageIndex: number;
       messageText: string;
       messageHash: string;
     }) => void;
     parentMessageIndex?: number;
-    parentMessageId?: string;
   }
 
-  let { nodes, depth = 0, allExpanded = true, onContextMenu, parentMessageIndex = 0, parentMessageId = '' }: Props = $props();
+  let { nodes, depth = 0, allExpanded = true, onContextMenu, parentMessageIndex = 0 }: Props = $props();
 
   // 展开状态
   let expandedStates = $state<Record<string, boolean>>({});
@@ -52,10 +50,8 @@
 
   function handleContextMenu(e: MouseEvent, node: HeaderTreeNode) {
     e.preventDefault();
-    if (onContextMenu && parentMessageId) {
-      // 使用 parentMessageId 作为书签定位依据
+    if (onContextMenu) {
       onContextMenu(e, {
-        messageId: parentMessageId,
         outlineItemType: 'header',
         messageIndex: parentMessageIndex,
         messageText: node.text,
@@ -74,12 +70,9 @@
     };
   }
 
-  // 检查节点是否有书签（基于 messageId）
+  // 检查节点是否有书签（基于 messageIndex）
   function hasBookmark(): boolean {
-    if (parentMessageId) {
-      return bookmarksStore.hasBookmarkForMessageId(parentMessageId);
-    }
-    return false;
+    return bookmarksStore.hasBookmarkForMessageIndex(parentMessageIndex);
   }
 </script>
 
@@ -112,7 +105,7 @@
       </div>
 
       {#if node.children.length > 0 && expandedStates[node.id]}
-        <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} {onContextMenu} {parentMessageIndex} {parentMessageId} />
+        <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} {onContextMenu} {parentMessageIndex} />
       {/if}
     </div>
   {/each}

@@ -71,7 +71,6 @@ function createBookmarksStore() {
     addBookmark(params: {
       name: string;
       conversationId: string;
-      messageId: string;
       outlineItemType: 'message' | 'header';
       messageHash: string;
       messageIndex: number;
@@ -82,7 +81,6 @@ function createBookmarksStore() {
         name: params.name,
         conversationId: params.conversationId,
         platform,
-        messageId: params.messageId,
         outlineItemType: params.outlineItemType,
         messageHash: params.messageHash,
         messageIndex: params.messageIndex,
@@ -199,23 +197,23 @@ function createBookmarksStore() {
     },
     
     /**
-     * 检查消息是否已有书签
+     * 检查指定消息索引是否已有书签
      */
-    hasBookmarkForMessageId(messageId: string, conversationId?: string): boolean {
+    hasBookmarkForMessageIndex(messageIndex: number, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.some(b => b.messageId === messageId);
+      return bookmarks.some(b => b.messageIndex === messageIndex);
     },
     
     /**
-     * 获取消息对应的书签
+     * 获取指定消息索引的书签
      */
-    getBookmarkByMessageId(messageId: string, conversationId?: string): Bookmark | undefined {
+    getBookmarkByMessageIndex(messageIndex: number, conversationId?: string): Bookmark | undefined {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.find(b => b.messageId === messageId);
+      return bookmarks.find(b => b.messageIndex === messageIndex);
     },
     
     /**
@@ -249,9 +247,9 @@ function createBookmarksStore() {
               data[conversationId] = [];
             }
             for (const bookmark of bookmarks) {
-              // 检查是否已存在相同 messageId 的书签
+              // 检查是否已存在相同 messageIndex 的书签
               const exists = data[conversationId].some(
-                b => b.messageId === bookmark.messageId
+                b => b.messageIndex === bookmark.messageIndex
               );
               if (!exists) {
                 data[conversationId].push(bookmark);

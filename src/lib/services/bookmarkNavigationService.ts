@@ -95,12 +95,13 @@ export class BookmarkNavigationService {
 
   /**
    * 执行跳转（当前会话内）
+   * 定位策略：通过 messageIndex 找到消息位置，再用 hash 验证内容是否变更
    */
   private async executeNavigation(bookmark: Bookmark): Promise<NavigationResult> {
     const cache = messageCacheManager.getCache();
 
-    // 1. 先尝试通过 messageId 查找
-    const cachedItem = cache.find(item => item.messageId === bookmark.messageId);
+    // 1. 通过消息索引查找
+    const cachedItem = cache[bookmark.messageIndex];
 
     if (cachedItem) {
       // 找到了消息，验证 hash 是否一致
@@ -112,26 +113,11 @@ export class BookmarkNavigationService {
       return this.scrollToElement(cachedItem.outlineItem.element, cachedItem.outlineElement);
     }
 
-    // 2. 通过消息索引查找
-    const byIndex = cache[bookmark.messageIndex];
-    if (byIndex) {
-      // 找到了消息索引位置，验证 hash
-      const currentHash = byIndex.messageHash;
-      if (currentHash !== bookmark.messageHash) {
-        pushPanelNotice('内容已变更，跳转到最近位置', 'warning', 3000);
-      }
-      return this.scrollToElement(byIndex.outlineItem.element, byIndex.outlineElement);
-    }
-
-    // 3. 尝试通过 DOM 直接查找消息元素
-    const messageElement = document.querySelector(`[cbe-message-id="${bookmark.messageId}"]`);
-    if (messageElement) {
-      // 找到了 DOM 元素，计算 hash 验证
-      const currentHash = buildMessageHash(bookmark.messageIndex, messageElement.textContent || '');
-      if (currentHash !== bookmark.messageHash) {
-        pushPanelNotice('内容已变更，书签位置可能不准确', 'warning', 3000);
-      }
-      return this.scrollToElement(messageElement, null);
+    // 2. 索引超出范围，尝试找最后一条消息
+    if (cache.length > 0) {
+      const lastItem = cache[cache.length - 1];
+      pushPanelNotice('消息索引超出范围，跳转到最近位置', 'warning', 3000);
+      return this.scrollToElement(lastItem.outlineItem.element, lastItem.outlineElement);
     }
 
     return {
