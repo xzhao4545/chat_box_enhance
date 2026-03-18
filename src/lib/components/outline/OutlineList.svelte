@@ -14,6 +14,8 @@
       messageIndex: number;
       messageText: string;
       messageHash: string;
+      headerPath?: string;
+      headerText?: string;
     }) => void;
   }
 

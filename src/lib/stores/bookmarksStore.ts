@@ -74,6 +74,7 @@ function createBookmarksStore() {
       outlineItemType: 'message' | 'header';
       messageHash: string;
       messageIndex: number;
+      headerPath?: string;
     }): Bookmark {
       const platform = getCurrentPlatform();
       const bookmark: Bookmark = {
@@ -84,6 +85,7 @@ function createBookmarksStore() {
         outlineItemType: params.outlineItemType,
         messageHash: params.messageHash,
         messageIndex: params.messageIndex,
+        headerPath: params.headerPath,
         createdAt: Date.now()
       };
 
@@ -95,7 +97,7 @@ function createBookmarksStore() {
         return { ...data };
       });
 
-      gmLogger.info('添加书签', { id: bookmark.id, name: bookmark.name });
+      gmLogger.info('添加书签', { id: bookmark.id, name: bookmark.name, headerPath: params.headerPath });
       return bookmark;
     },
     

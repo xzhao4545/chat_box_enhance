@@ -3,7 +3,6 @@
   import { highlightElement } from '../../utils';
   import { scrollSyncService } from '../../services/scrollSyncService';
   import { bookmarksStore } from '../../stores';
-  import { buildMessageHash } from '../../utils/outlineBuilder';
   // 自导入用于递归渲染（Svelte 5 推荐方式）
   import HeaderTree from './HeaderTree.svelte';
 
@@ -16,11 +15,25 @@
       messageIndex: number;
       messageText: string;
       messageHash: string;
+      headerPath?: string;
+      headerText?: string;
     }) => void;
     parentMessageIndex?: number;
+    parentMessageText?: string;
+    parentMessageHash?: string;
+    currentPath?: string; // 当前标题路径
   }
 
-  let { nodes, depth = 0, allExpanded = true, onContextMenu, parentMessageIndex = 0 }: Props = $props();
+  let { 
+    nodes, 
+    depth = 0, 
+    allExpanded = true, 
+    onContextMenu, 
+    parentMessageIndex = 0,
+    parentMessageText = '',
+    parentMessageHash = '',
+    currentPath = ''
+  }: Props = $props();
 
   // 展开状态
   let expandedStates = $state<Record<string, boolean>>({});
@@ -48,14 +61,16 @@
     highlightElement(element);
   }
 
-  function handleContextMenu(e: MouseEvent, node: HeaderTreeNode) {
+  function handleContextMenu(e: MouseEvent, node: HeaderTreeNode, nodePath: string) {
     e.preventDefault();
     if (onContextMenu) {
       onContextMenu(e, {
         outlineItemType: 'header',
         messageIndex: parentMessageIndex,
-        messageText: node.text,
-        messageHash: buildMessageHash(parentMessageIndex, node.text)
+        messageText: parentMessageText,
+        messageHash: parentMessageHash,
+        headerPath: nodePath,
+        headerText: node.text
       });
     }
   }
@@ -74,17 +89,26 @@
   function hasBookmark(): boolean {
     return bookmarksStore.hasBookmarkForMessageIndex(parentMessageIndex);
   }
+
+  // 构建子节点的路径
+  function buildChildPath(index: number): string {
+    if (currentPath) {
+      return `${currentPath}.${index}`;
+    }
+    return `${index}`;
+  }
 </script>
 
 <div class="tree-container" style="margin-left: {depth * 15}px;">
-  {#each nodes as node}
+  {#each nodes as node, index}
+    {@const nodePath = buildChildPath(index)}
     <div class="tree-node-wrapper">
       <div
         class="tree-node header-level-{node.level}"
         class:has-bookmark={hasBookmark()}
         use:registerNode={node.id}
         onclick={(e) => scrollToElement(node.element, e)}
-        oncontextmenu={(e) => handleContextMenu(e, node)}
+        oncontextmenu={(e) => handleContextMenu(e, node, nodePath)}
         role="button"
         tabindex="0"
         onkeydown={(e) => e.key === 'Enter' && scrollToElement(node.element, e)}
@@ -105,7 +129,16 @@
       </div>
 
       {#if node.children.length > 0 && expandedStates[node.id]}
-        <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} {onContextMenu} {parentMessageIndex} />
+        <HeaderTree 
+          nodes={node.children} 
+          depth={depth + 1} 
+          {allExpanded} 
+          {onContextMenu} 
+          {parentMessageIndex}
+          {parentMessageText}
+          {parentMessageHash}
+          currentPath={nodePath}
+        />
       {/if}
     </div>
   {/each}

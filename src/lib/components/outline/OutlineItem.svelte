@@ -15,6 +15,8 @@
       messageIndex: number;
       messageText: string;
       messageHash: string;
+      headerPath?: string;
+      headerText?: string;
     }) => void;
   }
 
@@ -51,7 +53,7 @@
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
     if (onContextMenu) {
-      // 计算 hash
+      // 使用整个消息内容计算 hash
       const hash = buildMessageHash(item.index, item.searchText);
       onContextMenu(e, {
         outlineItemType: 'message',
@@ -117,7 +119,14 @@
       </div>
       {#if isExpanded}
         <div class="outline-ai-content">
-          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} />
+          <HeaderTree 
+            nodes={item.headers} 
+            allExpanded={allExpanded} 
+            onContextMenu={onContextMenu} 
+            parentMessageIndex={item.index}
+            parentMessageText={item.searchText}
+            parentMessageHash={buildMessageHash(item.index, item.searchText)}
+          />
         </div>
       {/if}
     </div>

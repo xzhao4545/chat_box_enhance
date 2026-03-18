@@ -125,13 +125,17 @@
     messageIndex: number;
     messageText: string;
     messageHash: string;
+    headerPath?: string;
+    headerText?: string;
   }) {
     const fullContext = buildOutlineItemContext(
       context.outlineItemType,
       context.messageIndex,
       context.messageText,
       context.messageHash,
-      e.target as Element
+      e.target as Element,
+      context.headerPath,
+      context.headerText
     );
     showContextMenu(e, fullContext);
   }

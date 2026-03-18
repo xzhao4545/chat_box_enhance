@@ -11,10 +11,16 @@
 
   let { context, defaultNameLength, onClose, onAdded }: Props = $props();
 
-  // 默认名称：取消息前 N 个字符
+  // 默认名称：header 类型使用 headerText，message 类型使用 messageText
+  let nameSourceText = $derived(
+    context.outlineItemType === 'header' && context.headerText 
+      ? context.headerText 
+      : context.messageText
+  );
+  
   let defaultName = $derived(
-    context.messageText.substring(0, defaultNameLength) + 
-    (context.messageText.length > defaultNameLength ? '...' : '')
+    nameSourceText.substring(0, defaultNameLength) + 
+    (nameSourceText.length > defaultNameLength ? '...' : '')
   );
 
   let customName = $state('');
@@ -41,7 +47,8 @@
         conversationId,
         outlineItemType: context.outlineItemType,
         messageHash: context.messageHash,
-        messageIndex: context.messageIndex
+        messageIndex: context.messageIndex,
+        headerPath: context.headerPath
       });
 
       isSubmitting = false;

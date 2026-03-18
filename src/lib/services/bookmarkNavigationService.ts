@@ -5,7 +5,7 @@
 
 import { get } from 'svelte/store';
 import { bookmarksStore, parserConfigStore } from '../stores';
-import type { Bookmark, PendingNavigation } from '../types';
+import type { Bookmark, PendingNavigation, HeaderTreeNode } from '../types';
 import { getConversationId, isInConversation, buildConversationUrl } from './conversationService';
 import { messageCacheManager } from './messageCacheManager';
 import { scrollSyncService } from './scrollSyncService';
@@ -95,7 +95,10 @@ export class BookmarkNavigationService {
 
   /**
    * 执行跳转（当前会话内）
-   * 定位策略：通过 messageIndex 找到消息位置，再用 hash 验证内容是否变更
+   * 定位策略：
+   * 1. 通过 messageIndex 找到消息位置
+   * 2. 用 hash 验证内容是否变更
+   * 3. 如果是 header 类型，根据 headerPath 找到对应标题
    */
   private async executeNavigation(bookmark: Bookmark): Promise<NavigationResult> {
     const cache = messageCacheManager.getCache();
@@ -110,6 +113,20 @@ export class BookmarkNavigationService {
         // 内容已变更，弹出警告
         pushPanelNotice('内容已变更，书签位置可能不准确', 'warning', 3000);
       }
+
+      // 如果是 header 类型且有 headerPath，尝试定位到具体标题
+      if (bookmark.outlineItemType === 'header' && bookmark.headerPath) {
+        const headerElement = this.findHeaderByPath(
+          cachedItem.outlineItem.headers || [],
+          bookmark.headerPath
+        );
+        if (headerElement) {
+          return this.scrollToElement(headerElement, cachedItem.outlineElement);
+        }
+        // 找不到标题，跳转到消息位置
+        pushPanelNotice('标题结构已变更，跳转到消息位置', 'warning', 3000);
+      }
+
       return this.scrollToElement(cachedItem.outlineItem.element, cachedItem.outlineElement);
     }
 
@@ -124,6 +141,32 @@ export class BookmarkNavigationService {
       success: false,
       message: '未找到对应内容，书签可能已失效'
     };
+  }
+
+  /**
+   * 根据路径查找标题元素
+   * @param headers 标题树
+   * @param headerPath 路径，如 "0.1.2"
+   */
+  private findHeaderByPath(headers: HeaderTreeNode[], headerPath: string): Element | null {
+    if (!headerPath) return null;
+
+    const indices = headerPath.split('.').map(s => parseInt(s, 10));
+    let currentNodes = headers;
+    let targetNode: HeaderTreeNode | null = null;
+
+    for (let i = 0; i < indices.length; i++) {
+      const index = indices[i];
+      if (index < 0 || index >= currentNodes.length) {
+        logger.warn('标题路径索引越界', { headerPath, index, level: i });
+        return null;
+      }
+
+      targetNode = currentNodes[index];
+      currentNodes = targetNode.children;
+    }
+
+    return targetNode?.element || null;
   }
 
   /**
@@ -178,7 +221,11 @@ export class BookmarkNavigationService {
         return null;
       }
 
-      logger.info('恢复待跳转书签', { bookmarkId: bookmark.id, name: bookmark.name });
+      logger.info('恢复待跳转书签', { 
+        bookmarkId: bookmark.id, 
+        name: bookmark.name,
+        headerPath: bookmark.headerPath 
+      });
       return bookmark;
     } catch (error) {
       logger.error('检查待跳转书签失败', error);

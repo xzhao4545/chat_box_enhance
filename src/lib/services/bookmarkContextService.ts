@@ -256,13 +256,17 @@ export function buildOutlineItemContext(
   messageIndex: number,
   messageText: string,
   messageHash: string,
-  element: Element
+  element: Element,
+  headerPath?: string,
+  headerText?: string
 ): ContextMenuContext {
   return {
     outlineItemType,
     messageIndex,
     messageText,
     messageHash,
+    headerPath,
+    headerText,
     element
   };
 }
