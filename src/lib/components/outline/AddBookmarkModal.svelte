@@ -22,7 +22,7 @@
 
   // 是否已存在书签
   let hasExistingBookmark = $derived(
-    bookmarksStore.hasBookmarkForOutlineItem(context.outlineItemId)
+    bookmarksStore.hasBookmarkForMessageId(context.messageId)
   );
 
   // 最终使用的名称
@@ -39,7 +39,7 @@
       bookmarksStore.addBookmark({
         name: finalName,
         conversationId,
-        outlineItemId: context.outlineItemId,
+        messageId: context.messageId,
         outlineItemType: context.outlineItemType,
         messageHash: context.messageHash,
         messageIndex: context.messageIndex

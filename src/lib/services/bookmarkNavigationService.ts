@@ -12,6 +12,7 @@ import { scrollSyncService } from './scrollSyncService';
 import { highlightElement } from '../utils';
 import { pushPanelNotice } from '../stores/panelStatus';
 import { createTaggedLogger } from './logger';
+import { buildMessageHash } from '../utils/outlineBuilder';
 
 const logger = createTaggedLogger('BookmarkNav');
 
@@ -98,25 +99,45 @@ export class BookmarkNavigationService {
   private async executeNavigation(bookmark: Bookmark): Promise<NavigationResult> {
     const cache = messageCacheManager.getCache();
 
-    // 查找对应的消息
-    const cachedItem = cache.find(item => item.outlineItem.id === bookmark.outlineItemId);
+    // 1. 先尝试通过 messageId 查找
+    const cachedItem = cache.find(item => item.messageId === bookmark.messageId);
 
-    if (!cachedItem) {
-      // 尝试通过消息索引查找
-      const byIndex = cache[bookmark.messageIndex];
-      if (byIndex) {
-        // 找到了消息，但大纲元素ID不匹配，可能是内容发生了变化
-        pushPanelNotice('内容可能已变更，尝试跳转到最近位置', 'warning', 3000);
-        return this.scrollToElement(byIndex.outlineItem.element, byIndex.outlineElement);
+    if (cachedItem) {
+      // 找到了消息，验证 hash 是否一致
+      const currentHash = cachedItem.messageHash;
+      if (currentHash !== bookmark.messageHash) {
+        // 内容已变更，弹出警告
+        pushPanelNotice('内容已变更，书签位置可能不准确', 'warning', 3000);
       }
-
-      return {
-        success: false,
-        message: '未找到对应内容，书签可能已失效'
-      };
+      return this.scrollToElement(cachedItem.outlineItem.element, cachedItem.outlineElement);
     }
 
-    return this.scrollToElement(cachedItem.outlineItem.element, cachedItem.outlineElement);
+    // 2. 通过消息索引查找
+    const byIndex = cache[bookmark.messageIndex];
+    if (byIndex) {
+      // 找到了消息索引位置，验证 hash
+      const currentHash = byIndex.messageHash;
+      if (currentHash !== bookmark.messageHash) {
+        pushPanelNotice('内容已变更，跳转到最近位置', 'warning', 3000);
+      }
+      return this.scrollToElement(byIndex.outlineItem.element, byIndex.outlineElement);
+    }
+
+    // 3. 尝试通过 DOM 直接查找消息元素
+    const messageElement = document.querySelector(`[cbe-message-id="${bookmark.messageId}"]`);
+    if (messageElement) {
+      // 找到了 DOM 元素，计算 hash 验证
+      const currentHash = buildMessageHash(bookmark.messageIndex, messageElement.textContent || '');
+      if (currentHash !== bookmark.messageHash) {
+        pushPanelNotice('内容已变更，书签位置可能不准确', 'warning', 3000);
+      }
+      return this.scrollToElement(messageElement, null);
+    }
+
+    return {
+      success: false,
+      message: '未找到对应内容，书签可能已失效'
+    };
   }
 
   /**

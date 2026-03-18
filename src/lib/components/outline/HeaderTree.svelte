@@ -3,6 +3,7 @@
   import { highlightElement } from '../../utils';
   import { scrollSyncService } from '../../services/scrollSyncService';
   import { bookmarksStore } from '../../stores';
+  import { buildMessageHash } from '../../utils/outlineBuilder';
   // 自导入用于递归渲染（Svelte 5 推荐方式）
   import HeaderTree from './HeaderTree.svelte';
 
@@ -11,16 +12,17 @@
     depth?: number;
     allExpanded?: boolean;
     onContextMenu?: (e: MouseEvent, context: {
-      outlineItemId: string;
+      messageId: string;
       outlineItemType: 'message' | 'header';
       messageIndex: number;
       messageText: string;
       messageHash: string;
     }) => void;
     parentMessageIndex?: number;
+    parentMessageId?: string;
   }
 
-  let { nodes, depth = 0, allExpanded = true, onContextMenu, parentMessageIndex = 0 }: Props = $props();
+  let { nodes, depth = 0, allExpanded = true, onContextMenu, parentMessageIndex = 0, parentMessageId = '' }: Props = $props();
 
   // 展开状态
   let expandedStates = $state<Record<string, boolean>>({});
@@ -50,13 +52,14 @@
 
   function handleContextMenu(e: MouseEvent, node: HeaderTreeNode) {
     e.preventDefault();
-    if (onContextMenu) {
+    if (onContextMenu && parentMessageId) {
+      // 使用 parentMessageId 作为书签定位依据
       onContextMenu(e, {
-        outlineItemId: node.id,
+        messageId: parentMessageId,
         outlineItemType: 'header',
         messageIndex: parentMessageIndex,
         messageText: node.text,
-        messageHash: node.id
+        messageHash: buildMessageHash(parentMessageIndex, node.text)
       });
     }
   }
@@ -71,9 +74,12 @@
     };
   }
 
-  // 检查节点是否有书签
-  function hasBookmark(nodeId: string): boolean {
-    return bookmarksStore.hasBookmarkForOutlineItem(nodeId);
+  // 检查节点是否有书签（基于 messageId）
+  function hasBookmark(): boolean {
+    if (parentMessageId) {
+      return bookmarksStore.hasBookmarkForMessageId(parentMessageId);
+    }
+    return false;
   }
 </script>
 
@@ -82,7 +88,7 @@
     <div class="tree-node-wrapper">
       <div
         class="tree-node header-level-{node.level}"
-        class:has-bookmark={hasBookmark(node.id)}
+        class:has-bookmark={hasBookmark()}
         use:registerNode={node.id}
         onclick={(e) => scrollToElement(node.element, e)}
         oncontextmenu={(e) => handleContextMenu(e, node)}
@@ -91,7 +97,7 @@
         onkeydown={(e) => e.key === 'Enter' && scrollToElement(node.element, e)}
       >
         <span class="node-text">
-          {#if hasBookmark(node.id)}<span class="bookmark-indicator">🔖</span>{/if}
+          {#if hasBookmark()}<span class="bookmark-indicator">🔖</span>{/if}
           {node.text}
         </span>
         {#if node.children.length > 0}
@@ -106,7 +112,7 @@
       </div>
 
       {#if node.children.length > 0 && expandedStates[node.id]}
-        <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} {onContextMenu} {parentMessageIndex} />
+        <HeaderTree nodes={node.children} depth={depth + 1} {allExpanded} {onContextMenu} {parentMessageIndex} {parentMessageId} />
       {/if}
     </div>
   {/each}

@@ -71,7 +71,7 @@ function createBookmarksStore() {
     addBookmark(params: {
       name: string;
       conversationId: string;
-      outlineItemId: string;
+      messageId: string;
       outlineItemType: 'message' | 'header';
       messageHash: string;
       messageIndex: number;
@@ -82,7 +82,7 @@ function createBookmarksStore() {
         name: params.name,
         conversationId: params.conversationId,
         platform,
-        outlineItemId: params.outlineItemId,
+        messageId: params.messageId,
         outlineItemType: params.outlineItemType,
         messageHash: params.messageHash,
         messageIndex: params.messageIndex,
@@ -199,23 +199,23 @@ function createBookmarksStore() {
     },
     
     /**
-     * 检查大纲元素是否已有书签
+     * 检查消息是否已有书签
      */
-    hasBookmarkForOutlineItem(outlineItemId: string, conversationId?: string): boolean {
+    hasBookmarkForMessageId(messageId: string, conversationId?: string): boolean {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.some(b => b.outlineItemId === outlineItemId);
+      return bookmarks.some(b => b.messageId === messageId);
     },
     
     /**
-     * 获取大纲元素对应的书签
+     * 获取消息对应的书签
      */
-    getBookmarkByOutlineItemId(outlineItemId: string, conversationId?: string): Bookmark | undefined {
+    getBookmarkByMessageId(messageId: string, conversationId?: string): Bookmark | undefined {
       const data = get({ subscribe });
       const convId = conversationId || getConversationId();
       const bookmarks = data[convId] || [];
-      return bookmarks.find(b => b.outlineItemId === outlineItemId);
+      return bookmarks.find(b => b.messageId === messageId);
     },
     
     /**
@@ -249,9 +249,9 @@ function createBookmarksStore() {
               data[conversationId] = [];
             }
             for (const bookmark of bookmarks) {
-              // 检查是否已存在相同 outlineItemId 的书签
+              // 检查是否已存在相同 messageId 的书签
               const exists = data[conversationId].some(
-                b => b.outlineItemId === bookmark.outlineItemId
+                b => b.messageId === bookmark.messageId
               );
               if (!exists) {
                 data[conversationId].push(bookmark);

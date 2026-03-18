@@ -76,8 +76,8 @@ export function showContextMenu(event: MouseEvent, context: ContextMenuContext):
   event.preventDefault();
   event.stopPropagation();
 
-  const hasBookmark = bookmarksStore.hasBookmarkForOutlineItem(context.outlineItemId);
-  const existingBookmark = bookmarksStore.getBookmarkByOutlineItemId(context.outlineItemId);
+  const hasBookmark = bookmarksStore.hasBookmarkForMessageId(context.messageId);
+  const existingBookmark = bookmarksStore.getBookmarkByMessageId(context.messageId);
 
   const items: MenuItem[] = [];
 
@@ -109,7 +109,7 @@ export function showContextMenu(event: MouseEvent, context: ContextMenuContext):
     y: event.clientY,
     items,
     context,
-    bookmark: existingBookmark
+    bookmark: existingBookmark ?? null
   });
 }
 
@@ -187,7 +187,7 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
       if (state.bookmark) {
         bookmarksStore.removeBookmark(state.bookmark.id);
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByOutlineItemId(state.context.outlineItemId);
+        const bookmark = bookmarksStore.getBookmarkByMessageId(state.context.messageId);
         if (bookmark) {
           bookmarksStore.removeBookmark(bookmark.id);
         }
@@ -202,7 +202,7 @@ export function handleMenuSelect(itemId: string): { action: string; bookmark?: B
           bookmark: state.bookmark
         });
       } else if (state.context) {
-        const bookmark = bookmarksStore.getBookmarkByOutlineItemId(state.context.outlineItemId);
+        const bookmark = bookmarksStore.getBookmarkByMessageId(state.context.messageId);
         if (bookmark) {
           renameBookmarkModalState.set({
             visible: true,
@@ -252,7 +252,7 @@ export function getDefaultNameLength(): number {
  * 构建大纲元素的上下文信息
  */
 export function buildOutlineItemContext(
-  outlineItemId: string,
+  messageId: string,
   outlineItemType: 'message' | 'header',
   messageIndex: number,
   messageText: string,
@@ -260,7 +260,7 @@ export function buildOutlineItemContext(
   element: Element
 ): ContextMenuContext {
   return {
-    outlineItemId,
+    messageId,
     outlineItemType,
     messageIndex,
     messageText,

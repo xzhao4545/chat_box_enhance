@@ -5,12 +5,13 @@
   import { messageCacheManager } from '../../services/messageCacheManager';
   import { scrollSyncService } from '../../services/scrollSyncService';
   import { bookmarksStore } from '../../stores';
+  import { buildMessageHash } from '../../utils/outlineBuilder';
 
   interface Props {
     item: OutlineItemType;
     allExpanded?: boolean;
     onContextMenu?: (e: MouseEvent, context: {
-      outlineItemId: string;
+      messageId: string;
       outlineItemType: 'message' | 'header';
       messageIndex: number;
       messageText: string;
@@ -23,12 +24,19 @@
   let isExpanded = $state(true);
   let containerElement: HTMLDivElement | undefined = $state();
 
+  // 消息元素ID（从 DOM 元素获取）
+  let messageId = $state('');
+
   // 是否有书签
   let hasBookmark = $state(false);
 
-  // 检查是否有书签
+  // 获取 messageId 并检查书签
   $effect(() => {
-    hasBookmark = bookmarksStore.hasBookmarkForOutlineItem(item.id);
+    const id = item.element.getAttribute('cbe-message-id') || '';
+    messageId = id;
+    if (id) {
+      hasBookmark = bookmarksStore.hasBookmarkForMessageId(id);
+    }
   });
 
   function scrollToElement() {
@@ -50,13 +58,15 @@
 
   function handleContextMenu(e: MouseEvent) {
     e.preventDefault();
-    if (onContextMenu) {
+    if (onContextMenu && messageId) {
+      // 计算 hash
+      const hash = buildMessageHash(item.index, item.searchText);
       onContextMenu(e, {
-        outlineItemId: item.id,
+        messageId,
         outlineItemType: 'message',
         messageIndex: item.index,
         messageText: item.searchText,
-        messageHash: item.id // 使用 id 作为 hash 的简化版本
+        messageHash: hash
       });
     }
   }
@@ -116,7 +126,7 @@
       </div>
       {#if isExpanded}
         <div class="outline-ai-content">
-          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} />
+          <HeaderTree nodes={item.headers} allExpanded={allExpanded} onContextMenu={onContextMenu} parentMessageIndex={item.index} parentMessageId={messageId} />
         </div>
       {/if}
     </div>
