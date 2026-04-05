@@ -9,3 +9,4 @@ export { grokConfig } from './grok';
 export { tongyiConfig } from './tongyi';
 export { qwenConfig } from './qwen';
 export { kimiConfig } from './kimi';
+export { yuanbaoConfig } from './yuanbao';

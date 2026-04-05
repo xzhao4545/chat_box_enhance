@@ -13,6 +13,7 @@ import { grokConfig } from '../platform/grok';
 import { tongyiConfig } from '../platform/tongyi';
 import { qwenConfig } from '../platform/qwen';
 import { kimiConfig } from '../platform/kimi';
+import { yuanbaoConfig } from '../platform/yuanbao';
 
 /**
  * 当前平台Store
@@ -37,6 +38,7 @@ export function judgePlatform(): Platform {
   if (hostname.includes('qianwen.com')) return 'tongyi';
   if (hostname.includes('qwen.ai')) return 'qwen';
   if (hostname.includes('kimi.com')) return 'kimi';
+  if (hostname.includes('yuanbao.tencent.com')) return 'yuanbao';
 
   return 'unknown';
 }
@@ -63,6 +65,7 @@ function getParserConfigForPlatform(platform: Platform): ParserConfig | null {
     case 'tongyi': return tongyiConfig;
     case 'qwen': return qwenConfig;
     case 'kimi': return kimiConfig;
+    case 'yuanbao': return yuanbaoConfig;
     default: return null;
   }
 }

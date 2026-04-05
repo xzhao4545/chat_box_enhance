@@ -13,7 +13,8 @@ export default defineConfig({
         icon: 'https://cdn.deepseek.com/chat/icon.png',
         namespace: 'http://tampermonkey.net/',
         match: ['*://chatgpt.com/c/*','*://chat.deepseek.com/a/chat/s/*','*://grok.com/c/*',
-          '*://www.qianwen.com/chat/*','*://chat.qwen.ai/c/*','*://www.doubao.com/chat/*','*://www.kimi.com/chat/*'
+          '*://www.qianwen.com/chat/*','*://chat.qwen.ai/c/*','*://www.doubao.com/chat/*','*://www.kimi.com/chat/*',
+          '*://yuanbao.tencent.com/chat/*'
         ],
       },
     }),

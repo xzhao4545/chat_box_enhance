@@ -24,3 +24,6 @@ trace
 *.njsproj
 *.sln
 *.sw?
+
+vite.config.js
+tsconfig.node.tsbuildinfo

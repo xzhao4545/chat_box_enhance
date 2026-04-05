@@ -10,4 +10,4 @@ export * from './bookmark';
 /**
  * 支持的平台类型
  */
-export type Platform = 'deepseek' | 'doubao' | 'chatgpt' | 'grok' | 'tongyi' | 'qwen' | 'kimi' | 'unknown';
+export type Platform = 'deepseek' | 'doubao' | 'chatgpt' | 'grok' | 'tongyi' | 'qwen' | 'kimi' | 'yuanbao' | 'unknown';
