@@ -6,6 +6,7 @@
 
 - 自动解析聊天消息并生成大纲
 - 支持用户消息与 AI 消息分组展示
+- 支持添加书签
 - 自动识别 Markdown 标题并生成层级结构
 - 支持聊天内容动态更新后的实时刷新
 - 支持大纲搜索与正则过滤
@@ -15,15 +16,19 @@
 
 ## 当前支持平台
 
-| 平台 | 域名 | 大纲跟随 |
-|------|------|----------|
-| ChatGPT | `chatgpt.com` | ✅支持 |
-| DeepSeek | `chat.deepseek.com` | ✅支持 |
-| 豆包 | `*.doubao.com` | ✅支持 |
-| Grok | `grok.com` | ✅支持 |
-| 通义千问 | `www.qianwen.com` | ✅支持 |
-| Qwen | `chat.qwen.ai` | ✅支持 |
-| Kimi | `www.kimi.com` | ✅支持 |
+| 平台 | 域名 | 大纲跟随 | 书签功能 |
+|------|------|----------|----------|
+| ChatGPT | `chatgpt.com` | ✅支持 | ✅支持 |
+| DeepSeek | `chat.deepseek.com` | ✅支持 | ✅支持 |
+| 豆包 | `*.doubao.com` | ✅支持 | ✅支持 |
+| Grok | `grok.com` | ✅支持 | ✅支持 |
+| 通义千问 | `www.qianwen.com` | ✅支持 | ✅支持 |
+| Qwen | `chat.qwen.ai` | ✅支持 | ✅支持 |
+| Kimi | `www.kimi.com` | ✅支持 | ✅支持 |
+| 腾讯元宝 | `yuanbao.tencent.com` | ✅支持 | ✅支持 |
+
+![暗色主题](./img/dark.png "暗色主题")
+![亮色主题](./img/light.png "亮色主题")
 
 ## 安装方式
 
@@ -63,8 +68,10 @@
   - 统一执行首次刷新
   - 统一注册 `MutationObserver`
   - 统一处理销毁清理
-- `src/lib/services/outline.ts`
+- `src/lib/services/outlineRefreshService.ts`
   - 负责大纲数据生成、增量刷新与强制刷新
+- `src/lib/services/messageSourceService.ts`
+  - 负责消息采集与稳定消息 ID 补齐
 - `src/lib/services/observer.ts`
   - 负责 DOM 变化监听
 - `src/lib/services/scrollSyncService.ts`
@@ -76,13 +83,13 @@
 App.svelte
   -> outlineRuntimeService.start(parserConfig)
       -> 挂载 OutlinePanel
-      -> 刷新大纲数据
+      -> outlineRefreshService.refresh()
       -> 初始化滚动同步
       -> 注册 DOM 监听
 
 DOM 变化
   -> observerService
-      -> outlineService.refresh()
+      -> outlineRefreshService.refresh()
       -> 更新 outlineStore
       -> Svelte 组件重新渲染
 ```
@@ -117,10 +124,10 @@ DOM 变化
 如果要修改大纲运行流程，优先查看：
 
 - `src/lib/services/outlineRuntimeService.ts`
-- `src/lib/services/outline.ts`
+- `src/lib/services/outlineRefreshService.ts`
+- `src/lib/services/messageSourceService.ts`
 - `src/lib/services/observer.ts`
 
 ## 贡献
 
 欢迎提交 Issue 或 Pull Request 来改进这个项目。
-

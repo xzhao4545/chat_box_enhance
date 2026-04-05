@@ -18,15 +18,16 @@
 
 ## 平台支持
 
-| 平台 | 域名 | 大纲跟随 |
-|------|------|----------|
-| ChatGPT | `chatgpt.com` | ✅支持 |
-| DeepSeek | `chat.deepseek.com` | ✅支持 |
-| 豆包 | `*.doubao.com` | ✅支持 |
-| Grok | `grok.com` | ✅支持 |
-| 通义千问 | `www.qianwen.com` | ❌不支持 |
-| Qwen | `chat.qwen.ai` | ✅支持 |
-| Kimi | `www.kimi.com` | ✅支持 |
+| 平台 | 域名 | 大纲跟随 | 书签功能 |
+|------|------|----------|----------|
+| ChatGPT | `chatgpt.com` | ✅支持 | ✅支持 |
+| DeepSeek | `chat.deepseek.com` | ✅支持 | ✅支持 |
+| 豆包 | `*.doubao.com` | ✅支持 | ✅支持 |
+| Grok | `grok.com` | ✅支持 | ✅支持 |
+| 通义千问 | `www.qianwen.com` | ✅支持 | ✅支持 |
+| Qwen | `chat.qwen.ai` | ✅支持 | ✅支持 |
+| Kimi | `www.kimi.com` | ✅支持 | ✅支持 |
+| 腾讯元宝 | `yuanbao.tencent.com` | ✅支持 | ✅支持 |
 
 ## 面板控制项
 

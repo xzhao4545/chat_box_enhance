@@ -32,6 +32,7 @@ chat_box_enhance/
 │     │  ├─ kimi.ts
 │     │  ├─ qwen.ts
 │     │  ├─ tongyi.ts
+│     │  ├─ yuanbao.ts
 │     │  └─ index.ts
 │     ├─ services/
 │     │  ├─ index.ts
