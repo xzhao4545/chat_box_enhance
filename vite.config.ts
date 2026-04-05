@@ -12,8 +12,8 @@ export default defineConfig({
         name: "聊天助手大纲",
         icon: 'https://cdn.deepseek.com/chat/icon.png',
         namespace: 'http://tampermonkey.net/',
-        match: ['*://chatgpt.com/*','*://chat.deepseek.com/*','*://grok.com/*',
-          '*://www.qianwen.com/*','*://chat.qwen.ai/*','*://*.doubao.com/*','*://www.kimi.com/*'
+        match: ['*://chatgpt.com/c/*','*://chat.deepseek.com/a/chat/s/*','*://grok.com/c/*',
+          '*://www.qianwen.com/chat/*','*://chat.qwen.ai/c/*','*://www.doubao.com/chat/*','*://www.kimi.com/chat/*'
         ],
       },
     }),

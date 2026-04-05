@@ -39,17 +39,23 @@ export const grokConfig: ParserConfig = {
   
   // ===== 书签功能相关 =====
   
-  // Grok 无明确会话ID
+  // Grok URL: /c/{conversation-id}
   getConversationId: function () {
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'c') {
+      return parts[1];
+    }
     return null;
   },
   
   getConversationName: function () {
-    const titleElement = document.querySelector('h1, [class*="title"]');
-    return titleElement?.textContent?.trim() || null;
+    let title = document.title.trim();
+    title = title.substring(0, title.length - 7);
+    return title || null;
   },
   
-  buildConversationUrl: function () {
-    return '/';
+  buildConversationUrl: function (conversationId: string) {
+    return `/c/${conversationId}`;
   }
 };

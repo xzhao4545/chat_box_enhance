@@ -1,6 +1,7 @@
 <script lang="ts">
   import { bookmarksStore } from '../../stores';
   import type { ContextMenuContext } from '../../types';
+  import { getConversationId } from '../../services/conversationService';
 
   interface Props {
     context: ContextMenuContext;
@@ -39,22 +40,18 @@
 
     isSubmitting = true;
 
-    import('../../services/conversationService').then(({ getConversationId }) => {
-      const conversationId = getConversationId();
-
-      bookmarksStore.addBookmark({
-        name: finalName,
-        conversationId,
-        outlineItemType: context.outlineItemType,
-        messageHash: context.messageHash,
-        messageIndex: context.messageIndex,
-        headerPath: context.headerPath
-      });
-
-      isSubmitting = false;
-      onAdded?.();
-      onClose();
+    const conversationId = getConversationId();
+    bookmarksStore.addBookmark({
+      name: finalName,
+      conversationId,
+      outlineItemType: context.outlineItemType,
+      messageHash: context.messageHash,
+      messageIndex: context.messageIndex,
+      headerPath: context.headerPath
     });
+    isSubmitting = false;
+    onAdded?.();
+    onClose();
   }
 
   function handleKeydown(e: KeyboardEvent) {

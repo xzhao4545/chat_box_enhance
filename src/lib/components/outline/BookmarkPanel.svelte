@@ -1,11 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
   import { bookmarksStore } from '../../stores';
   import type { Bookmark, BookmarksData, ConversationBookmarks } from '../../types';
   import BookmarkList from './BookmarkList.svelte';
   import { getConversationId } from '../../services/conversationService';
-  import { showBookmarkContextMenu, handleMenuSelect } from '../../services/bookmarkContextService';
+  import { showBookmarkContextMenu } from '../../services/bookmarkContextService';
 
   interface Props {
     onNavigate?: (bookmark: Bookmark & { conversationId: string }) => void;

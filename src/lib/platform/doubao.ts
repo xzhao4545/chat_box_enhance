@@ -46,21 +46,22 @@ export const doubaoConfig: ParserConfig = {
   
   // ===== 书签功能相关 =====
   
-  // 豆包无明确会话ID，使用 hash 或默认值
+  // 豆包 URL: /chat/{conversation-id}
   getConversationId: function () {
-    const hash = window.location.hash;
-    if (hash && hash.length > 1) {
-      return hash.substring(1);
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length >= 2 && parts[0] === 'chat') {
+      return parts[1];
     }
     return null;
   },
   
   getConversationName: function () {
-    const titleElement = document.querySelector('[class*="chat-title"], [class*="conversation-title"]');
+    const titleElement = document.querySelector("main")?.firstElementChild?.firstElementChild?.children[1]?.firstChild?.firstChild?.firstChild;
     return titleElement?.textContent?.trim() || null;
   },
   
   buildConversationUrl: function (conversationId: string) {
-    return `/#${conversationId}`;
+    return `/chat/${conversationId}`;
   }
 };

@@ -52,7 +52,7 @@ export const kimiConfig: ParserConfig = {
   },
   
   getConversationName: function () {
-    const titleElement = document.querySelector('.chat-title, [class*="title"]');
+    const titleElement = document.querySelector(".chat-header-content");
     return titleElement?.textContent?.trim() || null;
   },
   

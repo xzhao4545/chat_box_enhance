@@ -70,7 +70,7 @@ export const chatgptConfig: ParserConfig = {
   },
   
   getConversationName: function () {
-    const titleElement = document.querySelector('h1.truncate, [data-testid="conversation-title"]');
+    const titleElement = document.querySelector('#history a[data-active]');
     return titleElement?.textContent?.trim() || null;
   },
   

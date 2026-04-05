@@ -6,7 +6,7 @@
 import { get } from 'svelte/store';
 import { bookmarksStore, parserConfigStore } from '../stores';
 import type { Bookmark, PendingNavigation, HeaderTreeNode } from '../types';
-import { getConversationId, isInConversation, buildConversationUrl } from './conversationService';
+import { isInConversation } from './conversationService';
 import { messageCacheManager } from './messageCacheManager';
   import { scrollSyncService } from './scrollSyncService';
 import { highlightElement } from '../utils';
